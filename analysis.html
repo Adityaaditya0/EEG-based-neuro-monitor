@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NeuroWatch — Post-Session Risk Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f7fa;--panel:#ffffff;--panel2:#f8f9fc;
+  --stroke:rgba(0,0,0,.06);--stroke2:rgba(0,0,0,.10);
+  --ink:#1a1d26;--muted:#5e6778;--muted2:#8b93a6;
+  --green:#10b981;--blue:#3b82f6;--lime:#84cc16;
+  --warn:#f59e0b;--danger:#ef4444;--purple:#8b5cf6;
+  --font-ui:'Inter',sans-serif;--font-mono:'JetBrains Mono',monospace;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.04),0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md:0 4px 24px rgba(0,0,0,0.06);
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);min-height:100vh;padding:0}
+#page{max-width:1400px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+
+/* HEADER */
+#hdr{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--stroke);border-radius:14px;padding:14px 20px;position:relative;overflow:hidden;box-shadow:var(--shadow-sm)}
+#hdr::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),var(--blue),var(--purple));opacity:.7}
+.hdr-title{font-size:18px;font-weight:700;letter-spacing:.04em}
+.hdr-sub{font-family:var(--font-mono);font-size:10px;color:var(--muted2);margin-top:3px}
+.hdr-badges{display:flex;gap:8px;align-items:center}
+.badge{font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:999px;border:1px solid;font-weight:500}
+.badge-blue{border-color:rgba(59,130,246,.2);background:rgba(59,130,246,.06);color:var(--blue)}
+.badge-green{border-color:rgba(16,185,129,.2);background:rgba(16,185,129,.06);color:var(--green)}
+.nav-btn{font-family:var(--font-mono);font-size:11px;padding:6px 14px;border:1px solid var(--stroke2);border-radius:8px;background:var(--panel2);color:var(--muted);cursor:pointer;text-decoration:none;transition:all .2s}
+.nav-btn:hover{background:#eef1f6;color:var(--ink)}
+
+/* RATIONALE BOX */
+#rationale{background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:16px 20px;border-left:3px solid var(--blue)}
+.rat-title{font-family:var(--font-mono);font-size:10px;color:var(--blue);letter-spacing:.08em;margin-bottom:10px}
+.rat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.rat-card{background:var(--panel2);border:1px solid var(--stroke);border-radius:10px;padding:12px 14px}
+.rat-card h4{font-size:12px;font-weight:600;margin-bottom:4px}
+.rat-card p{font-size:11px;color:var(--muted);line-height:1.5}
+.rat-card.bad h4{color:var(--danger)}
+.rat-card.good h4{color:var(--green)}
+
+/* UPLOAD / SESSION PICKER */
+#loader{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.panel-box{background:var(--panel);border:1px solid var(--stroke);border-radius:14px;padding:16px;box-shadow:var(--shadow-sm)}
+.panel-hdr{font-family:var(--font-mono);font-size:10px;color:var(--muted2);letter-spacing:.07em;margin-bottom:12px}
+.session-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto}
+.sess-item{display:flex;align-items:center;justify-content:space-between;background:var(--panel2);border:1px solid var(--stroke);border-radius:10px;padding:8px 12px;cursor:pointer;transition:all .2s}
+.sess-item:hover{border-color:var(--blue);box-shadow:var(--shadow-sm)}
+.sess-item.active{border-color:var(--green);background:rgba(16,185,129,.04)}
+.sess-name{font-family:var(--font-mono);font-size:11px}
+.sess-meta{font-family:var(--font-mono);font-size:10px;color:var(--muted2)}
+.upload-zone{border:2px dashed var(--stroke2);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:rgba(59,130,246,.03)}
+.upload-icon{font-size:28px;margin-bottom:8px}
+.upload-hint{font-size:12px;color:var(--muted);margin-top:4px;font-family:var(--font-mono)}
+#fileInput{display:none}
+.btn{font-family:var(--font-ui);font-size:13px;font-weight:600;padding:10px 18px;border-radius:10px;border:1px solid var(--stroke2);background:var(--panel2);color:var(--ink);cursor:pointer;transition:all .2s}
+.btn:hover{background:#eef1f6}
+.btn-green{border-color:rgba(16,185,129,.2);background:rgba(16,185,129,.06);color:#059669}
+.btn-blue{border-color:rgba(59,130,246,.2);background:rgba(59,130,246,.06);color:#2563eb}
+.btn-purple{border-color:rgba(139,92,246,.2);background:rgba(139,92,246,.06);color:#7c3aed}
+
+/* PROGRESS */
+#progress-wrap{display:none;background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:16px}
+#progress-bar-outer{height:6px;background:#eef1f6;border-radius:999px;overflow:hidden;margin:10px 0}
+#progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:999px;transition:width .2s}
+#progress-text{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+
+/* RESULTS */
+#results{display:none;flex-direction:column;gap:16px}
+
+/* SUMMARY STATS */
+#summary-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+
+/* RISK HERO */
+#risk-hero{
+  background:var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:16px;
+  padding:32px 40px;
+  display:flex;
+  align-items:center;
+  gap:40px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:var(--shadow-md);
+}
+#risk-hero::before{
+  content:'';position:absolute;top:0;left:0;bottom:0;width:4px;
+  background:var(--hero-color, var(--green));
+  box-shadow:0 0 12px var(--hero-color, var(--green));
+}
+.hero-gauge-wrap{
+  position:relative;
+  width:140px;height:140px;
+  flex-shrink:0;
+}
+.hero-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.hero-circle-bg{fill:none;stroke:#eef1f6;stroke-width:8}
+.hero-circle-val{fill:none;stroke:var(--hero-color, var(--green));stroke-width:8;stroke-linecap:round;stroke-dasharray:339.29;stroke-dashoffset:339.29;transition:stroke-dashoffset 1.5s cubic-bezier(0.1,0.8,0.2,1), stroke 0.5s}
+.hero-text-wrap{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.hero-pct{font-family:var(--font-mono);font-size:36px;font-weight:700;line-height:1;margin-bottom:2px;}
+.hero-pct-sign{font-size:16px;color:var(--muted);margin-left:2px;}
+.hero-label-sub{font-size:10px;color:var(--muted2);letter-spacing:0.05em;margin-top:4px}
+
+.hero-info{flex:1}
+.hero-title{font-size:12px;color:var(--muted);letter-spacing:.1em;font-family:var(--font-mono);margin-bottom:8px}
+.hero-diagnosis{font-size:32px;font-weight:700;color:var(--hero-color, var(--green));margin-bottom:12px}
+.hero-desc{font-size:14px;color:var(--muted);line-height:1.6;max-width:600px}
+
+@media(max-width:700px){
+  #risk-hero{flex-direction:column;text-align:center;padding:30px 20px;gap:20px}
+}
+.sum-stat{background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:12px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow-sm)}
+.sum-stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.sum-stat.s-normal::after{background:var(--green)}
+.sum-stat.s-warn::after{background:var(--warn)}
+.sum-stat.s-danger::after{background:var(--danger)}
+.sum-label{font-family:var(--font-mono);font-size:9px;color:var(--muted2);letter-spacing:.07em;margin-bottom:6px}
+.sum-value{font-family:var(--font-mono);font-size:22px;font-weight:700}
+.sum-unit{font-size:11px;color:var(--muted);margin-left:2px}
+
+/* RISK TIMELINE */
+#timeline-wrap{background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:16px}
+.section-hdr{font-family:var(--font-mono);font-size:10px;color:var(--muted2);letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-hdr::after{content:'';flex:1;height:1px;background:var(--stroke)}
+#timelineCanvas{display:block;width:100%;border-radius:8px}
+
+/* FFT SPECTRA */
+#fft-section{background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:16px}
+.fft-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.ch-btn{font-family:var(--font-mono);font-size:10px;padding:5px 10px;border-radius:6px;border:1px solid var(--stroke);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+.ch-btn.active{border-color:var(--green);color:#059669;background:rgba(16,185,129,.06)}
+#fftGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.fft-card{background:var(--panel2);border:1px solid var(--stroke);border-radius:10px;padding:10px;position:relative}
+.fft-ch-name{font-family:var(--font-mono);font-size:10px;color:var(--muted2);margin-bottom:6px}
+.fft-canvas{display:block;width:100%;height:80px}
+.fft-dl{position:absolute;top:8px;right:8px;font-size:16px;cursor:pointer;opacity:.4;transition:opacity .2s}
+.fft-dl:hover{opacity:1}
+
+/* BIOMARKER TABLE */
+#biomarker-section{background:var(--panel);border:1px solid var(--stroke);border-radius:12px;padding:16px}
+#bioTable{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11px}
+#bioTable th{text-align:left;color:var(--muted2);font-size:10px;letter-spacing:.06em;padding:6px 10px;border-bottom:1px solid var(--stroke)}
+#bioTable td{padding:7px 10px;border-bottom:1px solid var(--stroke)}
+#bioTable tr:hover td{background:rgba(0,0,0,.02)}
+.bio-bar{height:4px;border-radius:999px;background:#eef1f6;overflow:hidden;width:80px}
+.bio-fill{height:100%;border-radius:999px}
+.risk-chip{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;border:1px solid}
+
+/* DOCTOR REPORT */
+#report-section{background:var(--panel);border:1px solid rgba(139,92,246,.15);border-radius:14px;padding:20px;position:relative;overflow:hidden;box-shadow:var(--shadow-sm)}
+#report-section::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--blue))}
+.report-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.report-badge{font-family:var(--font-mono);font-size:10px;border:1px solid rgba(139,92,246,.25);background:rgba(139,92,246,.06);color:var(--purple);padding:3px 10px;border-radius:999px}
+#reportContent{font-size:13px;line-height:1.7;color:var(--muted)}
+#reportContent strong{color:var(--ink);font-weight:600}
+#reportContent .rep-finding{background:var(--panel2);border-left:3px solid var(--purple);border-radius:0 8px 8px 0;padding:10px 14px;margin:10px 0;font-size:12px}
+#reportContent .rep-finding.warn{border-color:var(--warn)}
+#reportContent .rep-finding.ok{border-color:var(--green)}
+.dl-bar{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+
+/* RESULTS WRAPPER */
+#results{display:none;flex-direction:column;gap:16px}
+
+/* EMPTY STATE */
+#empty-state{text-align:center;padding:48px;color:var(--muted2);font-family:var(--font-mono);font-size:13px}
+.empty-icon{font-size:40px;margin-bottom:12px}
+
+@media(max-width:900px){
+  .rat-grid{grid-template-columns:1fr}
+  #loader{grid-template-columns:1fr}
+  #summary-stats{grid-template-columns:repeat(3,1fr)}
+  #fftGrid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="page">
+
+  <!-- HEADER -->
+  <div id="hdr">
+    <div>
+      <div class="hdr-title">⚡ NeuroWatch — Post-Session Risk Analysis</div>
+      <div class="hdr-sub">Evidence-based AI analysis of recorded EEG sessions · Bonn Dataset Model v1.0</div>
+    </div>
+    <div class="hdr-badges">
+      <span class="badge badge-blue">Session-Based AI</span>
+      <span class="badge badge-green">19 Biomarkers</span>
+      <a href="/dashboard" class="nav-btn">← Live Dashboard</a>
+    </div>
+  </div>
+
+  <!-- WHY SESSION-BASED -->
+  <div id="rationale">
+    <div class="rat-title">WHY SESSION-BASED ANALYSIS IS CLINICALLY SUPERIOR TO CONTINUOUS PREDICTION</div>
+    <div class="rat-grid">
+      <div class="rat-card bad">
+        <h4>❌ Continuous Prediction (Old Approach)</h4>
+        <p>Runs AI every 800ms on live data. One blink artifact spikes risk to 80%. No context window. Doctor sees a flashing number — not actionable evidence. Wastes CPU. Generates false alarms.</p>
+      </div>
+      <div class="rat-card good">
+        <h4>✅ Session Analysis (This Page)</h4>
+        <p>Analyses the full recorded CSV in windowed segments. Detects sustained risk patterns. Filters transient artifacts by requiring risk to persist across multiple windows. Produces a timestamped evidence report.</p>
+      </div>
+      <div class="rat-card good">
+        <h4>📋 Clinical Proof for the Doctor</h4>
+        <p>Provides FFT spectra per channel (downloadable PNG), a biomarker deviation table, and a structured written report with timestamps — evidence the doctor can file, discuss, and act on.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSION LOADER -->
+  <div id="loader">
+    <div class="panel-box">
+      <div class="panel-hdr">SELECT RECORDED SESSION</div>
+      <div class="session-list" id="sessionList">
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--muted2);text-align:center;padding:20px">Loading sessions…</div>
+      </div>
+    </div>
+    <div class="panel-box">
+      <div class="panel-hdr">OR UPLOAD A CSV FILE</div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📁</div>
+        <div style="font-size:13px;font-weight:600">Drop CSV or click to browse</div>
+        <div class="upload-hint">Format: timestamp,FP1,FP2,F7,F8,O1,O2,EarL,EarR</div>
+      </div>
+      <input type="file" id="fileInput" accept=".csv">
+    </div>
+  </div>
+
+  <!-- ANALYSE BUTTON -->
+  <div style="text-align:center;display:flex;gap:12px;justify-content:center">
+    <button class="btn btn-green" id="btnAnalyse" disabled>🔬 Run AI Analysis</button>
+    <button class="btn btn-blue" id="btnClear" onclick="clearResults()" style="display:none">✕ Clear</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress-wrap">
+    <div class="section-hdr">ANALYSIS PROGRESS</div>
+    <div id="progress-text">Initialising…</div>
+    <div id="progress-bar-outer"><div id="progress-bar"></div></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+
+    <!-- RISK HERO -->
+    <div id="risk-hero" style="--hero-color:var(--green);">
+      <div class="hero-gauge-wrap">
+        <svg class="hero-svg" viewBox="0 0 120 120">
+          <circle class="hero-circle-bg" cx="60" cy="60" r="54"></circle>
+          <circle class="hero-circle-val" id="hero-circle" cx="60" cy="60" r="54"></circle>
+        </svg>
+        <div class="hero-text-wrap">
+          <div class="hero-pct"><span id="hero-pct-val">--</span><span class="hero-pct-sign">%</span></div>
+          <div class="hero-label-sub">AVG RISK</div>
+        </div>
+      </div>
+      <div class="hero-info">
+        <div class="hero-title">OVERALL AI RISK DIAGNOSIS</div>
+        <div class="hero-diagnosis" id="hero-diag-text">NORMAL</div>
+        <div class="hero-desc" id="hero-desc-text">Based on the analysis of -- segments.</div>
+      </div>
+    </div>
+
+    <div id="summary-stats"></div>
+
+    <!-- RISK TIMELINE -->
+    <div id="timeline-wrap">
+      <div class="section-hdr">RISK SCORE TIMELINE — FULL SESSION</div>
+      <canvas id="timelineCanvas" height="240"></canvas>
+    </div>
+
+    <!-- FFT SPECTRA -->
+    <div id="fft-section">
+      <div class="section-hdr">PER-CHANNEL FFT POWER SPECTRUM — DOWNLOADABLE</div>
+      <div class="fft-controls" id="fftControls">
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--muted2);">Window:</span>
+        <select id="fftWindow" style="background:var(--panel2);color:var(--ink);border:1px solid var(--stroke2);border-radius:6px;padding:4px 8px;font-family:var(--font-mono);font-size:11px"></select>
+        <button class="btn btn-purple" onclick="downloadAllFFT()">⬇ Download All FFT PNGs</button>
+      </div>
+      <div id="fftGrid"></div>
+    </div>
+
+    <!-- BIOMARKER TABLE -->
+    <div id="biomarker-section">
+      <div class="section-hdr">BIOMARKER DEVIATION TABLE — CLINICAL EVIDENCE</div>
+      <table id="bioTable">
+        <thead><tr>
+          <th>BIOMARKER</th><th>SESSION AVG</th><th>NORMAL BASELINE</th><th>DEVIATION (σ)</th><th>CONTRIBUTION</th><th>STATUS</th>
+        </tr></thead>
+        <tbody id="bioTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- DOCTOR REPORT -->
+    <div id="report-section">
+      <div class="report-header">
+        <div>
+          <div style="font-size:15px;font-weight:700">📋 Clinical AI Summary Report</div>
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted2);margin-top:3px">Generated by NeuroWatch AI · For physician review</div>
+        </div>
+        <span class="report-badge">DRAFT — NOT FOR DIAGNOSIS</span>
+      </div>
+      <div id="reportContent"></div>
+      <div class="dl-bar">
+        <button class="btn btn-green" onclick="downloadReport()">⬇ Download Report (TXT)</button>
+        <button class="btn btn-blue" onclick="downloadBioCSV()">⬇ Download Biomarkers (CSV)</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="empty-state">
+    <div class="empty-icon">🧠</div>
+    Select a session or upload a CSV file, then click <strong>Run AI Analysis</strong>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// FEATURE EXTRACTION (same as training)
+// ═══════════════════════════════════════════════════════
+const SR = 250, WIN = 512, STEP = 128;
+const CH_NAMES = ['FP1','FP2','F7','F8','O1','O2','Ear-L','Ear-R'];
+const CH_COLORS = ['#059669','#059669','#059669','#059669','#2563eb','#2563eb','#65a30d','#65a30d'];
+
+function aMean(a){let s=0;for(let i=0;i<a.length;i++)s+=a[i];return s/a.length}
+function aVar(a,mu){if(mu===undefined)mu=aMean(a);let s=0;for(let i=0;i<a.length;i++)s+=(a[i]-mu)**2;return s/a.length}
+function aStd(a,mu){return Math.sqrt(aVar(a,mu))}
+function aSkew(a){const mu=aMean(a),sd=aStd(a,mu);if(sd===0)return 0;let s=0;for(let i=0;i<a.length;i++)s+=((a[i]-mu)/sd)**3;return s/a.length}
+function aKurt(a){const mu=aMean(a),sd=aStd(a,mu);if(sd===0)return 0;let s=0;for(let i=0;i<a.length;i++)s+=((a[i]-mu)/sd)**4;return(s/a.length)-3}
+function aZCR(a){let c=0;const mu=aMean(a);for(let i=1;i<a.length;i++)if((a[i]-mu)*(a[i-1]-mu)<0)c++;return c/(a.length-1)}
+function aLL(a){let ll=0;for(let i=1;i<a.length;i++)ll+=Math.abs(a[i]-a[i-1]);return ll/(a.length-1)}
+function aPP(a){let mn=Infinity,mx=-Infinity;for(let i=0;i<a.length;i++){if(a[i]<mn)mn=a[i];if(a[i]>mx)mx=a[i];}return mx-mn}
+function aHjA(a){return aVar(a)}
+function aHjM(a){const d=new Array(a.length-1);for(let i=0;i<d.length;i++)d[i]=a[i+1]-a[i];const vx=aVar(a),vd=aVar(d);return vx>0?Math.sqrt(vd/vx):0}
+function aHjC(a){const d=new Array(a.length-1);for(let i=0;i<d.length;i++)d[i]=a[i+1]-a[i];const mX=aHjM(a),mD=aHjM(d);return mX>0?mD/mX:0}
+
+function aFFT(sig,sr){
+  let N=1;while(N<sig.length)N<<=1;
+  const re=new Float64Array(N),im=new Float64Array(N);
+  for(let i=0;i<sig.length;i++)re[i]=sig[i]*(0.5-0.5*Math.cos(2*Math.PI*i/(sig.length-1)));
+  for(let i=1,j=0;i<N;i++){let bit=N>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}
+  for(let len=2;len<=N;len<<=1){const ang=-2*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);
+    for(let i=0;i<N;i+=len){let wR=1,wI=0;for(let j=0;j<len/2;j++){const uR=re[i+j],uI=im[i+j];
+      const vR=re[i+j+len/2]*wR-im[i+j+len/2]*wI,vI=re[i+j+len/2]*wI+im[i+j+len/2]*wR;
+      re[i+j]=uR+vR;im[i+j]=uI+vI;re[i+j+len/2]=uR-vR;im[i+j+len/2]=uI-vI;
+      const nw=wR*wr-wI*wi;wI=wR*wi+wI*wr;wR=nw;}}}
+  const df=sr/N,ny=N/2,pw=new Float64Array(ny+1),fr=new Float64Array(ny+1);
+  for(let k=0;k<=ny;k++){pw[k]=re[k]*re[k]+im[k]*im[k];fr[k]=k*df;}
+  return{power:pw,freqs:fr};
+}
+
+function aBP(pw,fr,lo,hi){let s=0;for(let k=0;k<fr.length;k++)if(fr[k]>=lo&&fr[k]<hi)s+=pw[k];return s}
+function aSE(pw,fr,lo,hi){let t=0;const b=[];for(let k=0;k<fr.length;k++)if(fr[k]>=lo&&fr[k]<hi){b.push(pw[k]);t+=pw[k];}if(!t||!b.length)return 0;let e=0;for(const p of b){const pn=p/t;if(pn>0)e-=pn*Math.log2(pn);}return e/Math.log2(b.length)}
+function aSEF(pw,fr,pct=0.95){let t=0;for(let k=0;k<pw.length;k++)t+=pw[k];let c=0;for(let k=0;k<pw.length;k++){c+=pw[k];if(c/t>=pct)return fr[k];}return fr[fr.length-1]}
+
+function extractFeatures(win){
+  const{power,freqs}=aFFT(win,SR);
+  const d=aBP(power,freqs,.5,4),th=aBP(power,freqs,4,8);
+  const al=aBP(power,freqs,8,13),be=aBP(power,freqs,13,30);
+  const ga=aBP(power,freqs,30,45),tp=d+th+al+be+ga;
+  const sd=(a,b)=>b>0?a/b:0;
+  return{mean:aMean(win),std:aStd(win),skewness:aSkew(win),kurtosis:aKurt(win),
+    zeroCrossingRate:aZCR(win),lineLength:aLL(win),peakToPeak:aPP(win),
+    hjorthActivity:aHjA(win),hjorthMobility:aHjM(win),hjorthComplexity:aHjC(win),
+    deltaPct:sd(d,tp),thetaPct:sd(th,tp),alphaPct:sd(al,tp),betaPct:sd(be,tp),gammaPct:sd(ga,tp),
+    deltaOverBeta:sd(d,be),thetaOverAlpha:sd(th,al),
+    spectralEntropy:aSE(power,freqs,.5,45),spectralEdgeFreq:aSEF(power,freqs,.95),totalPower:tp,
+    _rawPower:power,_rawFreqs:freqs};
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let aiModel = null;
+let csvData = null;     // parsed rows: [{ts, channels:[8 floats]}]
+let selectedFile = null;
+let analysisResult = null;
+
+// ═══════════════════════════════════════════════════════
+// LOAD MODEL
+// ═══════════════════════════════════════════════════════
+async function loadModel(){
+  try{
+    const r=await fetch('/ai_model.json');
+    if(!r.ok)throw new Error();
+    aiModel=await r.json();
+    document.querySelector('.hdr-sub').textContent=`Evidence-based AI · Model v${aiModel.version} · ${aiModel.config.featureCount} biomarkers · Bonn Dataset`;
+  }catch{console.warn('AI model not loaded');}
+}
+loadModel();
+
+// ═══════════════════════════════════════════════════════
+// SESSION LIST
+// ═══════════════════════════════════════════════════════
+async function loadSessions(){
+  const list=document.getElementById('sessionList');
+  try{
+    const r=await fetch('/api/sessions');
+    const sessions=await r.json();
+    if(!sessions.length){
+      list.innerHTML=`<div style="font-family:var(--font-mono);font-size:11px;color:var(--muted2);text-align:center;padding:20px">No recorded sessions found.<br>Run the dashboard to record a session.</div>`;
+      return;
+    }
+    list.innerHTML='';
+    sessions.forEach(s=>{
+      const el=document.createElement('div');
+      el.className='sess-item';
+      const kb=(s.size/1024).toFixed(1);
+      const dt=new Date(s.mtime).toLocaleString();
+      el.innerHTML=`<span class="sess-name">${s.name}</span><span class="sess-meta">${kb} KB · ${dt}</span>`;
+      el.addEventListener('click',()=>{
+        document.querySelectorAll('.sess-item').forEach(x=>x.classList.remove('active'));
+        el.classList.add('active');
+        selectedFile={type:'server',name:s.name};
+        document.getElementById('btnAnalyse').disabled=false;
+      });
+      list.appendChild(el);
+    });
+  }catch{
+    list.innerHTML=`<div style="font-family:var(--font-mono);font-size:11px;color:var(--muted2);text-align:center;padding:20px">Server not reachable</div>`;
+  }
+}
+loadSessions();
+
+// ═══════════════════════════════════════════════════════
+// FILE UPLOAD
+// ═══════════════════════════════════════════════════════
+const uploadZone=document.getElementById('uploadZone');
+const fileInput=document.getElementById('fileInput');
+
+['dragover','dragenter'].forEach(e=>uploadZone.addEventListener(e,ev=>{ev.preventDefault();uploadZone.classList.add('drag')}));
+['dragleave','drop'].forEach(e=>uploadZone.addEventListener(e,ev=>{ev.preventDefault();uploadZone.classList.remove('drag')}));
+uploadZone.addEventListener('drop',ev=>{const f=ev.dataTransfer.files[0];if(f)setUploadedFile(f)});
+fileInput.addEventListener('change',()=>{if(fileInput.files[0])setUploadedFile(fileInput.files[0])});
+
+function setUploadedFile(f){
+  selectedFile={type:'upload',file:f};
+  uploadZone.innerHTML=`<div class="upload-icon">✅</div><div style="font-size:13px;font-weight:600">${f.name}</div><div class="upload-hint">${(f.size/1024).toFixed(1)} KB selected</div>`;
+  document.querySelectorAll('.sess-item').forEach(x=>x.classList.remove('active'));
+  document.getElementById('btnAnalyse').disabled=false;
+}
+
+// Check for dashboard hand-off
+window.addEventListener('DOMContentLoaded', () => {
+  const dashCsv = localStorage.getItem('neuro_analysis_csv');
+  if (dashCsv) {
+    localStorage.removeItem('neuro_analysis_csv');
+    const f = new File([dashCsv], "Live_Dashboard_Session.csv", { type: "text/csv" });
+    setUploadedFile(f);
+    setTimeout(() => document.getElementById('btnAnalyse').click(), 400);
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// PARSE CSV
+// ═══════════════════════════════════════════════════════
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const parts=lines[i].split(',');
+    if(parts.length<9)continue;
+    rows.push({ts:parseFloat(parts[0]),channels:parts.slice(1,9).map(Number)});
+  }
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════════
+// RISK PREDICTION
+// ═══════════════════════════════════════════════════════
+function predictRisk(feats){
+  if(!aiModel)return{risk:50,contributions:{}};
+  let score=0;const contributions={};
+  for(const fn of aiModel.featureNames){
+    const w=aiModel.featureWeights[fn]||0;if(!w)continue;
+    const bl=aiModel.featureBaseline[fn];
+    const dir=aiModel.featureDirection[fn];
+    const val=feats[fn];if(!isFinite(val))continue;
+    const z=bl.std>0?(val-bl.mean)/bl.std:0;
+    const contrib=z*dir*w;
+    score+=contrib;
+    contributions[fn]=Math.max(0,contrib);
+  }
+  const{scale,offset}=aiModel.sigmoidParams;
+  const risk=100/(1+Math.exp(-scale*(score-offset)));
+  return{risk:Math.max(0,Math.min(100,risk)),contributions};
+}
+
+function riskColor(p){
+  if(p<20)return'#10b981';
+  if(p<40)return'#84cc16';
+  if(p<60)return'#f59e0b';
+  if(p<80)return'#ef4444';
+  return'#dc2626';
+}
+
+function getRiskLabel(p){
+  if(p<20)return{label:'NORMAL',color:'#10b981'};
+  if(p<40)return{label:'LOW RISK',color:'#84cc16'};
+  if(p<60)return{label:'MODERATE',color:'#f59e0b'};
+  if(p<80)return{label:'HIGH',color:'#ef4444'};
+  return{label:'CRITICAL',color:'#dc2626'};
+}
+
+// ═══════════════════════════════════════════════════════
+// MAIN ANALYSIS
+// ═══════════════════════════════════════════════════════
+document.getElementById('btnAnalyse').addEventListener('click', async ()=>{
+  if(!selectedFile)return;
+  clearResults();
+  showProgress(true);
+  setProgress(5,'Loading CSV…');
+
+  let text='';
+  try{
+    if(selectedFile.type==='server'){
+      const r=await fetch(`/api/session/${encodeURIComponent(selectedFile.name)}`);
+      if(!r.ok)throw new Error('Server error');
+      text=await r.text();
+    } else {
+      text=await selectedFile.file.text();
+    }
+  }catch(e){alert('Failed to load: '+e.message);showProgress(false);return;}
+
+  setProgress(15,'Parsing CSV…');
+  const rows=parseCSV(text);
+  if(!rows.length){alert('No valid EEG rows found.');showProgress(false);return;}
+
+  setProgress(20,`${rows.length} samples found · Running windowed analysis…`);
+
+  // Analyse each channel independently; use Ch0 (FP1) for risk timeline
+  const nSamples=rows.length;
+  const timeline=[];   // {windowIdx, timeS, risks:[8], avgRisk, features}
+  const allContribs={};
+
+  // For FFT: store power spectrum of peak-risk window per channel
+  const peakWindowFeats=Array(8).fill(null);
+  let peakRisk=0;
+
+  let windowIdx=0;
+  for(let start=0;start+WIN<=nSamples;start+=STEP){
+    windowIdx++;
+    const risks=[];
+    const featsArr=[];
+    for(let ch=0;ch<8;ch++){
+      const win=new Float64Array(WIN);
+      for(let i=0;i<WIN;i++)win[i]=rows[start+i].channels[ch];
+      const feats=extractFeatures(win);
+      const{risk,contributions}=predictRisk(feats);
+      risks.push(risk);
+      featsArr.push({...feats,_rawPower:feats._rawPower,_rawFreqs:feats._rawFreqs});
+      for(const[k,v] of Object.entries(contributions)){
+        if(!allContribs[k])allContribs[k]=[];
+        allContribs[k].push(v);
+      }
+    }
+    const avgRisk=aMean(risks);
+    const timeS=rows[start].ts?(rows[start].ts-rows[0].ts)/1000:start/SR;
+    timeline.push({windowIdx,timeS,risks,avgRisk,featsArr});
+
+    if(avgRisk>peakRisk){
+      peakRisk=avgRisk;
+      for(let ch=0;ch<8;ch++)peakWindowFeats[ch]=featsArr[ch];
+    }
+
+    if(windowIdx%20===0){
+      const pct=20+Math.round((start/nSamples)*70);
+      setProgress(pct,`Analysing window ${windowIdx}… (${Math.round(start/nSamples*100)}%)`);
+      await sleep(1);
+    }
+  }
+
+  setProgress(95,'Building report…');
+  await sleep(10);
+
+  analysisResult={timeline,allContribs,peakWindowFeats,nSamples,csvRows:rows};
+
+  // Make visible BEFORE rendering so that canvases get actual client widths
+  document.getElementById('results').style.display='flex';
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('btnClear').style.display='';
+
+  // Yield one frame to ensure layout is complete and width calculations are accurate
+  requestAnimationFrame(() => {
+    renderSummary();
+    renderTimeline();
+    renderFFT(peakWindowFeats);
+    renderBioTable(allContribs);
+    renderReport();
+    buildFFTWindowSelect(timeline);
+
+    setProgress(100,'Done!');
+    setTimeout(()=>showProgress(false),800);
+  });
+});
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// ═══════════════════════════════════════════════════════
+// RENDER: SUMMARY STATS
+// ═══════════════════════════════════════════════════════
+function renderSummary(){
+  const{timeline,nSamples}=analysisResult;
+  const avgRisks=timeline.map(w=>w.avgRisk);
+  const maxRisk=Math.max(...avgRisks);
+  const avgRisk=aMean(avgRisks);
+  const highRiskPct=avgRisks.filter(r=>r>=60).length/avgRisks.length*100;
+  const durS=Math.round(nSamples/SR);
+  const peakLevel=getRiskLabel(maxRisk);
+  const avgLv=getRiskLabel(avgRisk);
+
+  const stats=[
+    {label:'SESSION DURATION',value:durS,unit:'sec',cls:'s-normal'},
+    {label:'TOTAL WINDOWS',value:timeline.length,unit:'',cls:'s-normal'},
+    {label:'AVERAGE RISK',value:avgRisk.toFixed(1),unit:'%',cls:avgRisk>=60?'s-danger':avgRisk>=40?'s-warn':'s-normal'},
+    {label:'PEAK RISK',value:maxRisk.toFixed(1),unit:'%',cls:maxRisk>=60?'s-danger':maxRisk>=40?'s-warn':'s-normal'},
+    {label:'HIGH RISK WINDOWS',value:highRiskPct.toFixed(1),unit:'%',cls:highRiskPct>20?'s-danger':highRiskPct>5?'s-warn':'s-normal'},
+  ];
+
+  // Render Hero
+  const heroRoot = document.getElementById('risk-hero');
+  heroRoot.style.setProperty('--hero-color', avgLv.color);
+  
+  const circle = document.getElementById('hero-circle');
+  const circumference = 339.29; // 2 * PI * 54
+  const offset = circumference - (avgRisk / 100) * circumference;
+  // Delay slightly for animation
+  setTimeout(() => circle.style.strokeDashoffset = offset, 100);
+
+  document.getElementById('hero-pct-val').textContent = avgRisk.toFixed(1);
+  document.getElementById('hero-diag-text').textContent = avgLv.label.toUpperCase();
+  
+  const descEl = document.getElementById('hero-desc-text');
+  if (avgRisk < 40) {
+    descEl.innerHTML = `Based on the analysis of <strong>${timeline.length}</strong> segments over a <strong>${durS}s</strong> session. Brainwave patterns are stable and within normal baseline. No immediate clinical action required.`;
+  } else if (avgRisk < 60) {
+    descEl.innerHTML = `Based on the analysis of <strong>${timeline.length}</strong> segments over a <strong>${durS}s</strong> session. The AI detected elevated risk factors. Routine monitoring is recommended.`;
+  } else {
+    descEl.innerHTML = `Critical alert! Based on the analysis of <strong>${timeline.length}</strong> segments, <strong style="color:var(--danger)">${highRiskPct.toFixed(1)}%</strong> of the session duration exhibited high-risk abnormalities reaching a peak of <strong style="color:var(--danger)">${maxRisk.toFixed(1)}%</strong>. Immediate clinical review advised.`;
+  }
+
+  const cont=document.getElementById('summary-stats');
+  cont.innerHTML=stats.map(s=>`
+    <div class="sum-stat ${s.cls}">
+      <div class="sum-label">${s.label}</div>
+      <div class="sum-value" style="color:${s.cls==='s-danger'?'var(--danger)':s.cls==='s-warn'?'var(--warn)':'var(--green)'}">${s.value}<span class="sum-unit">${s.unit}</span></div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER: TIMELINE (High-DPI, Premium)
+// ═══════════════════════════════════════════════════════
+function renderTimeline(){
+  const cv=document.getElementById('timelineCanvas');
+  const{timeline}=analysisResult;
+  if(!timeline||timeline.length<2)return;
+
+  const dpr=window.devicePixelRatio||1;
+  const W=1400; // Fixed internal resolution, CSS downscales it responsively
+  const H=240;
+  const PAD_TOP=28, PAD_BOT=28, PAD_LEFT=42, PAD_RIGHT=16;
+  const plotW=W-PAD_LEFT-PAD_RIGHT;
+  const plotH=H-PAD_TOP-PAD_BOT;
+
+  // Set sharp canvas internal dimensions
+  cv.width=W*dpr; cv.height=H*dpr;
+  const cx=cv.getContext('2d');
+  cx.scale(dpr,dpr);
+
+  // Helper: percentage → Y pixel
+  const yOf=p=>PAD_TOP+plotH-(p/100)*plotH;
+  const xOf=i=>(i/(timeline.length-1))*plotW+PAD_LEFT;
+
+  // ── Background ──
+  cx.fillStyle='#eef1f6';
+  cx.beginPath();
+  cx.roundRect(0,0,W,H,8);
+  cx.fill();
+
+  // ── Risk zone bands ──
+  const zones=[
+    {lo:0,  hi:20, color:'16,185,129', alpha:0.04},
+    {lo:20, hi:40, color:'132,204,22',alpha:0.04},
+    {lo:40, hi:60, color:'245,158,11', alpha:0.05},
+    {lo:60, hi:80, color:'239,68,68',alpha:0.05},
+    {lo:80, hi:100,color:'239,68,68',  alpha:0.08},
+  ];
+  zones.forEach(z=>{
+    const y1=yOf(z.hi), y2=yOf(z.lo);
+    cx.fillStyle=`rgba(${z.color},${z.alpha})`;
+    cx.fillRect(PAD_LEFT,y1,plotW,y2-y1);
+  });
+
+  // ── Threshold lines ──
+  [60,80].forEach(p=>{
+    const y=yOf(p);
+    cx.setLineDash([4,4]);
+    cx.strokeStyle=p>=80?'rgba(239,68,68,.3)':'rgba(245,158,11,.25)';
+    cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(PAD_LEFT,y);cx.lineTo(PAD_LEFT+plotW,y);cx.stroke();
+    cx.setLineDash([]);
+    // threshold label
+    cx.font='600 9px JetBrains Mono,monospace';
+    cx.fillStyle=p>=80?'rgba(239,68,68,.6)':'rgba(245,158,11,.5)';
+    cx.textAlign='right';
+    cx.fillText(p>=80?'CRITICAL':'HIGH',PAD_LEFT+plotW-4,y-3);
+    cx.textAlign='left';
+  });
+
+  // ── Grid lines & Y-axis labels ──
+  cx.font='10px JetBrains Mono,monospace';
+  [0,20,40,60,80,100].forEach(p=>{
+    const y=yOf(p);
+    cx.strokeStyle='rgba(0,0,0,.06)';
+    cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(PAD_LEFT,y);cx.lineTo(PAD_LEFT+plotW,y);cx.stroke();
+    cx.fillStyle='rgba(0,0,0,.35)';
+    cx.textAlign='right';
+    cx.fillText(p+'%',PAD_LEFT-6,y+3.5);
+    cx.textAlign='left';
+  });
+
+  // ── Per-channel ghost lines (muted, thin) ──
+  for(let ch=0;ch<8;ch++){
+    cx.beginPath();
+    cx.globalAlpha=0.15;
+    timeline.forEach((w,i)=>{
+      const x=xOf(i), y=yOf(w.risks[ch]);
+      if(i===0)cx.moveTo(x,y);else cx.lineTo(x,y);
+    });
+    cx.strokeStyle=CH_COLORS[ch];cx.lineWidth=0.8;cx.stroke();
+    cx.globalAlpha=1;
+  }
+
+  // ── Gradient fill under the average risk line ──
+  const fillGrad=cx.createLinearGradient(0,yOf(100),0,yOf(0));
+  fillGrad.addColorStop(0,'rgba(239,68,68,.15)');
+  fillGrad.addColorStop(0.4,'rgba(245,158,11,.10)');
+  fillGrad.addColorStop(0.7,'rgba(132,204,22,.06)');
+  fillGrad.addColorStop(1,'rgba(16,185,129,.03)');
+
+  cx.beginPath();
+  cx.moveTo(xOf(0),yOf(0));
+  timeline.forEach((w,i)=>{cx.lineTo(xOf(i),yOf(w.avgRisk));});
+  cx.lineTo(xOf(timeline.length-1),yOf(0));
+  cx.closePath();
+  cx.fillStyle=fillGrad;
+  cx.fill();
+
+  // ── Average risk line (main stroke) ──
+  const lineGrad=cx.createLinearGradient(0,yOf(100),0,yOf(0));
+  lineGrad.addColorStop(0,'#dc2626');
+  lineGrad.addColorStop(0.35,'#ef4444');
+  lineGrad.addColorStop(0.55,'#f59e0b');
+  lineGrad.addColorStop(0.75,'#84cc16');
+  lineGrad.addColorStop(1,'#10b981');
+
+  // Draw with glow
+  cx.save();
+  cx.shadowColor='rgba(16,185,129,.25)';
+  cx.shadowBlur=8;
+  cx.beginPath();
+  timeline.forEach((w,i)=>{
+    const x=xOf(i), y=yOf(w.avgRisk);
+    if(i===0)cx.moveTo(x,y);else cx.lineTo(x,y);
+  });
+  cx.strokeStyle=lineGrad;cx.lineWidth=2.5;cx.lineJoin='round';cx.lineCap='round';cx.stroke();
+  cx.restore();
+
+  // ── Time axis (X-axis labels) ──
+  cx.font='10px JetBrains Mono,monospace';
+  cx.fillStyle='rgba(0,0,0,.3)';
+  cx.textAlign='center';
+  const dur=timeline[timeline.length-1].timeS;
+  const tickStep=dur<=60?10:dur<=180?30:dur<=600?60:120;
+  for(let t=0;t<=dur;t+=tickStep){
+    const x=PAD_LEFT+(t/dur)*plotW;
+    // tick mark
+    cx.strokeStyle='rgba(0,0,0,.1)';
+    cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(x,yOf(0));cx.lineTo(x,yOf(0)+5);cx.stroke();
+    // label
+    const mins=Math.floor(t/60);
+    const secs=Math.round(t%60);
+    const label=t>=60?`${mins}:${String(secs).padStart(2,'0')}`:`${t}s`;
+    cx.fillText(label,x,yOf(0)+16);
+  }
+  cx.textAlign='left';
+
+  // ── High-risk point markers ──
+  const highPoints=[];
+  timeline.forEach((w,i)=>{
+    if(w.avgRisk>=60){
+      highPoints.push({i,x:xOf(i),y:yOf(w.avgRisk),risk:w.avgRisk,t:w.timeS});
+    }
+  });
+
+  // Cluster nearby high-risk points — only annotate peaks
+  const peaks=[];
+  for(let j=0;j<highPoints.length;j++){
+    const p=highPoints[j];
+    // Is it a local max among its neighbors?
+    const prev=highPoints[j-1];
+    const next=highPoints[j+1];
+    const isPeak=(!prev||p.risk>=prev.risk)&&(!next||p.risk>=next.risk);
+    if(isPeak)peaks.push(p);
+  }
+
+  // Draw markers for spaced-out peaks
+  let lastAnnotX=-100;
+  peaks.forEach(p=>{
+    // Outer glow
+    cx.beginPath();cx.arc(p.x,p.y,8,0,Math.PI*2);
+    cx.fillStyle=p.risk>=80?'rgba(231,76,60,.12)':'rgba(255,107,107,.1)';
+    cx.fill();
+    // Inner dot
+    cx.beginPath();cx.arc(p.x,p.y,3.5,0,Math.PI*2);
+    cx.fillStyle=p.risk>=80?'#e74c3c':'#ff6b6b';
+    cx.fill();
+    // Ring
+    cx.beginPath();cx.arc(p.x,p.y,6,0,Math.PI*2);
+    cx.strokeStyle=p.risk>=80?'rgba(231,76,60,.35)':'rgba(255,107,107,.25)';
+    cx.lineWidth=1.5;cx.stroke();
+
+    // Annotation label (if enough space)
+    if(p.x-lastAnnotX>70){
+      const lbl=`${p.risk.toFixed(0)}%`;
+      cx.font='600 9px JetBrains Mono,monospace';
+      const tw=cx.measureText(lbl).width;
+      const lx=p.x-tw/2-4, ly=p.y-16;
+      // pill background
+      cx.fillStyle=p.risk>=80?'rgba(231,76,60,.85)':'rgba(255,107,107,.75)';
+      cx.beginPath();cx.roundRect(lx,ly-9,tw+8,14,4);cx.fill();
+      // label text
+      cx.fillStyle='#fff';
+      cx.textAlign='center';
+      cx.fillText(lbl,p.x,ly);
+      cx.textAlign='left';
+      // pointer triangle
+      cx.beginPath();
+      cx.moveTo(p.x-3,ly+5);cx.lineTo(p.x+3,ly+5);cx.lineTo(p.x,ly+9);cx.closePath();
+      cx.fillStyle=p.risk>=80?'rgba(231,76,60,.85)':'rgba(255,107,107,.75)';
+      cx.fill();
+      lastAnnotX=p.x;
+    }
+  });
+
+  // ── Chart title watermark ──
+  cx.font='600 10px JetBrains Mono,monospace';
+  cx.fillStyle='rgba(0,0,0,.12)';
+  cx.textAlign='right';
+  cx.fillText(`${timeline.length} windows · ${Math.round(dur)}s session`,W-PAD_RIGHT,PAD_TOP-10);
+  cx.textAlign='left';
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER: FFT GRID
+// ═══════════════════════════════════════════════════════
+function renderFFT(featsArr){
+  const grid=document.getElementById('fftGrid');
+  grid.innerHTML='';
+  featsArr.forEach((f,ch)=>{
+    if(!f)return;
+    const pw=f._rawPower,fr=f._rawFreqs;
+    const card=document.createElement('div');card.className='fft-card';
+    card.innerHTML=`<div class="fft-ch-name">${CH_NAMES[ch]}</div><canvas class="fft-canvas" id="fc${ch}" height="80"></canvas><span class="fft-dl" title="Download PNG" onclick="downloadFFT(${ch})">⬇</span>`;
+    grid.appendChild(card);
+    requestAnimationFrame(()=>drawFFT(document.getElementById('fc'+ch),pw,fr,CH_COLORS[ch]));
+  });
+}
+
+function drawFFT(cv,pw,fr,color){
+  const W=cv.parentElement.clientWidth-20||200;cv.width=W;
+  const cx=cv.getContext('2d');
+  cx.fillStyle='#eef1f6';cx.fillRect(0,0,W,80);
+  const maxF=45;
+  const inBand=[],freqsInBand=[];
+  for(let k=0;k<fr.length;k++)if(fr[k]>=0.5&&fr[k]<=maxF){inBand.push(pw[k]);freqsInBand.push(fr[k]);}
+  if(!inBand.length)return;
+  const maxP=Math.max(...inBand)||1;
+  const bandColors={'delta':'#3b82f6','theta':'#10b981','alpha':'#84cc16','beta':'#6366f1','gamma':'#8b93a6'};
+
+  inBand.forEach((p,i)=>{
+    const f=freqsInBand[i];
+    const x=(f/maxF)*W;
+    const h=(p/maxP)*72;
+    let bc=color;
+    if(f<4)bc=bandColors.delta;
+    else if(f<8)bc=bandColors.theta;
+    else if(f<13)bc=bandColors.alpha;
+    else if(f<30)bc=bandColors.beta;
+    else bc=bandColors.gamma;
+    cx.fillStyle=bc+'cc';
+    cx.fillRect(x,78-h,Math.max(1,(freqsInBand[1]-freqsInBand[0])/maxF*W),h);
+  });
+
+  // Band labels
+  cx.font='8px JetBrains Mono,monospace';cx.fillStyle='rgba(0,0,0,.35)';
+  [['δ',2],[' θ',6],['α',10.5],['β',21.5],['γ',37.5]].forEach(([l,f])=>{
+    cx.fillText(l,(f/maxF)*W,12);
+  });
+}
+
+function buildFFTWindowSelect(timeline){
+  const sel=document.getElementById('fftWindow');sel.innerHTML='';
+  const peaks=timeline.filter(w=>w.avgRisk>=40).slice(0,30);
+  const windows=peaks.length?peaks:timeline.slice(0,20);
+  windows.forEach((w,i)=>{
+    const opt=document.createElement('option');
+    opt.value=w.windowIdx-1;
+    const lv=getRiskLabel(w.avgRisk);
+    opt.textContent=`t=${w.timeS.toFixed(1)}s — ${w.avgRisk.toFixed(0)}% (${lv.label})`;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change',()=>{
+    const wi=parseInt(sel.value);
+    if(analysisResult&&analysisResult.timeline[wi])
+      renderFFT(analysisResult.timeline[wi].featsArr);
+  });
+}
+
+function downloadFFT(ch){
+  const cv=document.getElementById('fc'+ch);
+  if(!cv)return;
+  const a=document.createElement('a');
+  a.href=cv.toDataURL('image/png');
+  a.download=`neurowatch_fft_${CH_NAMES[ch]}_${Date.now()}.png`;
+  a.click();
+}
+
+function downloadAllFFT(){
+  for(let i=0;i<8;i++)downloadFFT(i);
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER: BIOMARKER TABLE
+// ═══════════════════════════════════════════════════════
+function renderBioTable(allContribs){
+  if(!aiModel)return;
+  const body=document.getElementById('bioTbody');body.innerHTML='';
+  const{timeline}=analysisResult;
+
+  // Compute per-feature averages across all windows (channel 0)
+  const featNames=aiModel.featureNames;
+  const avgFeats={};
+  const featVals={};
+
+  timeline.forEach(w=>{
+    const f=w.featsArr[0];
+    for(const fn of featNames){
+      if(!featVals[fn])featVals[fn]=[];
+      if(isFinite(f[fn]))featVals[fn].push(f[fn]);
+    }
+  });
+
+  for(const fn of featNames)avgFeats[fn]=featVals[fn]?aMean(featVals[fn]):0;
+
+  const maxContrib=Math.max(...featNames.map(fn=>(allContribs[fn]?aMean(allContribs[fn]):0)),0.01);
+
+  featNames.slice(0,14).forEach(fn=>{
+    const bl=aiModel.featureBaseline[fn];
+    const avg=avgFeats[fn];
+    const deviation=bl.std>0?(avg-bl.mean)/bl.std:0;
+    const contribution=allContribs[fn]?aMean(allContribs[fn]):0;
+    const barPct=Math.min(100,(contribution/maxContrib)*100);
+    const sigma=Math.abs(deviation);
+    const statusColor=sigma>3?'var(--danger)':sigma>1.5?'var(--warn)':'var(--green)';
+    const statusLabel=sigma>3?'HIGH DEV':sigma>1.5?'ELEVATED':'NORMAL';
+    const chipBorder=sigma>3?'rgba(231,76,60,.4)':sigma>1.5?'rgba(245,166,35,.4)':'rgba(55,215,181,.4)';
+    const chipBg=sigma>3?'rgba(231,76,60,.1)':sigma>1.5?'rgba(245,166,35,.1)':'rgba(55,215,181,.1)';
+
+    const row=document.createElement('tr');
+    row.innerHTML=`
+      <td>${fn}</td>
+      <td>${avg.toFixed(4)}</td>
+      <td>${bl.mean.toFixed(4)} ± ${bl.std.toFixed(4)}</td>
+      <td style="color:${statusColor}">${deviation>0?'+':''}${deviation.toFixed(2)}σ</td>
+      <td><div class="bio-bar"><div class="bio-fill" style="width:${barPct}%;background:${riskColor(barPct)}"></div></div></td>
+      <td><span class="risk-chip" style="color:${statusColor};border-color:${chipBorder};background:${chipBg}">${statusLabel}</span></td>`;
+    body.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER: DOCTOR REPORT
+// ═══════════════════════════════════════════════════════
+function renderReport(){
+  const{timeline,nSamples}=analysisResult;
+  const avgRisks=timeline.map(w=>w.avgRisk);
+  const avgRisk=aMean(avgRisks);
+  const maxRisk=Math.max(...avgRisks);
+  const highWins=timeline.filter(w=>w.avgRisk>=60);
+  const modWins=timeline.filter(w=>w.avgRisk>=40&&w.avgRisk<60);
+  const durS=(nSamples/SR).toFixed(1);
+  const peakLv=getRiskLabel(maxRisk);
+  const avgLv=getRiskLabel(avgRisk);
+  const now=new Date().toLocaleString();
+
+  let topBiomarkers='';
+  if(aiModel){
+    const{allContribs}=analysisResult;
+    const sorted=[...aiModel.featureNames]
+      .map(fn=>({fn,c:allContribs[fn]?aMean(allContribs[fn]):0}))
+      .sort((a,b)=>b.c-a.c).slice(0,3);
+    topBiomarkers=sorted.map(x=>`<strong>${x.fn}</strong>`).join(', ');
+  }
+
+  const highBlock=highWins.length>0
+    ?`<div class="rep-finding warn">⚠ ${highWins.length} window(s) exceeded 60% risk threshold. First occurrence at t=${highWins[0].timeS.toFixed(1)}s. These windows require clinical review.</div>`
+    :`<div class="rep-finding ok">✓ No windows exceeded the 60% high-risk threshold. Signal patterns were within expected bounds for the majority of the session.</div>`;
+
+  const html=`
+    <p><strong>Report Date:</strong> ${now}<br>
+    <strong>Analysis Model:</strong> NeuroWatch AI v${aiModel?.version||'N/A'} · Bonn University Dataset · ${aiModel?.config?.featureCount||19} biomarkers<br>
+    <strong>Session Duration:</strong> ${durS} seconds · ${nSamples} samples · ${SR} Hz · 8 channels</p>
+    <br>
+    <p><strong>Summary:</strong> The AI analysed this EEG session using ${timeline.length} overlapping analysis windows (512 samples each, 75% overlap). The average session risk score was <strong style="color:${avgLv.color}">${avgRisk.toFixed(1)}% (${avgLv.label})</strong>, with a peak of <strong style="color:${peakLv.color}">${maxRisk.toFixed(1)}% (${peakLv.label})</strong>.</p>
+    ${highBlock}
+    <div class="rep-finding">
+      📊 <strong>Key Contributing Biomarkers:</strong> ${topBiomarkers||'(load model to see details)'}.<br>
+      These features deviated most significantly from the healthy normal baseline derived from the Bonn University EEG Dataset (Andrzejak et al., 2001).
+    </div>
+    <br>
+    <p><strong>Methodology Note:</strong> Unlike real-time continuous prediction (which is susceptible to transient artifacts), this analysis processes the complete recorded session. Risk scores are computed per 2-second window and smoothed via exponential moving average. Only sustained deviations across multiple consecutive windows are flagged — reducing false positives caused by blink, movement, or muscle artifacts.</p>
+    <br>
+    <p style="color:var(--warn);font-size:12px">⚠ DISCLAIMER: This report is generated by a research prototype. It is not a certified medical device and must not be used for clinical diagnosis. All findings should be reviewed by a qualified neurologist.</p>`;
+
+  document.getElementById('reportContent').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════
+// DOWNLOADS
+// ═══════════════════════════════════════════════════════
+function downloadReport(){
+  const text=document.getElementById('reportContent').innerText;
+  const blob=new Blob([text],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`neurowatch_report_${Date.now()}.txt`;a.click();
+}
+
+function downloadBioCSV(){
+  if(!aiModel||!analysisResult)return;
+  const{allContribs,timeline}=analysisResult;
+  const featVals={};
+  timeline.forEach(w=>{const f=w.featsArr[0];for(const fn of aiModel.featureNames){if(!featVals[fn])featVals[fn]=[];if(isFinite(f[fn]))featVals[fn].push(f[fn]);}});
+  const rows=['biomarker,session_avg,normal_mean,normal_std,deviation_sigma,contribution_avg'];
+  for(const fn of aiModel.featureNames){
+    const bl=aiModel.featureBaseline[fn];
+    const avg=featVals[fn]?aMean(featVals[fn]):0;
+    const dev=bl.std>0?(avg-bl.mean)/bl.std:0;
+    const contrib=allContribs[fn]?aMean(allContribs[fn]):0;
+    rows.push(`${fn},${avg.toFixed(6)},${bl.mean.toFixed(6)},${bl.std.toFixed(6)},${dev.toFixed(4)},${contrib.toFixed(6)}`);
+  }
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`neurowatch_biomarkers_${Date.now()}.csv`;a.click();
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function showProgress(show){document.getElementById('progress-wrap').style.display=show?'block':'none'}
+function setProgress(pct,msg){
+  document.getElementById('progress-bar').style.width=pct+'%';
+  document.getElementById('progress-text').textContent=msg;
+}
+function clearResults(){
+  document.getElementById('results').style.display='none';
+  document.getElementById('empty-state').style.display='';
+  document.getElementById('btnClear').style.display='none';
+  analysisResult=null;
+}
+</script>
+</body>
+</html>

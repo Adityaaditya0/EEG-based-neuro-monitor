@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NeuroWatch EEG — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --bg2: #eef1f6;
+      --panel: #ffffff;
+      --card: #f8f9fc;
+      --ink: #1a1d26;
+      --muted: #5e6778;
+      --muted2: #8b93a6;
+      --stroke: rgba(0,0,0,0.06);
+      --stroke2: rgba(0,0,0,0.10);
+      --green: #10b981;
+      --greenGlow: rgba(16,185,129,.18);
+      --blue: #3b82f6;
+      --lime: #84cc16;
+      --red: #ef4444;
+      --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 24px rgba(0,0,0,0.06);
+      --shadow-lg: 0 12px 48px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font-ui); overflow-x: hidden; }
+
+    /* Animated background */
+    .bg-waves {
+      position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+    }
+    .bg-waves svg { width: 100%; height: 100%; opacity: .06; }
+
+    /* Layout */
+    .page {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Left: Instructions panel */
+    .left-panel {
+      background: linear-gradient(165deg, #f0f4f8 0%, #e8ecf2 100%);
+      padding: 44px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      border-right: 1px solid var(--stroke);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-icon {
+      width: 46px; height: 46px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 16px rgba(16,185,129,.25);
+    }
+    .brand-text h1 {
+      font-family: var(--font-mono);
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      color: var(--ink);
+    }
+    .brand-text p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .section-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .12em;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    /* Head diagram */
+    .head-diagram {
+      display: flex;
+      justify-content: center;
+      padding: 10px 0;
+    }
+    .head-diagram svg {
+      width: 220px;
+      height: 260px;
+      filter: drop-shadow(0 2px 12px rgba(16,185,129,.08));
+    }
+
+    .instructions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.7);
+      border: 1px solid var(--stroke);
+      transition: all .2s ease;
+    }
+    .step:hover { 
+      background: rgba(255,255,255,.95);
+      box-shadow: var(--shadow-sm);
+      transform: translateY(-1px);
+    }
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: rgba(16,185,129,.1);
+      color: var(--green);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-content h4 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 3px;
+      color: var(--ink);
+    }
+    .step-content p {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .electrode-tag {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 5px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      margin: 0 1px;
+    }
+    .tag-green { background: rgba(16,185,129,.1); color: #059669; }
+    .tag-blue { background: rgba(59,130,246,.1); color: #2563eb; }
+    .tag-lime { background: rgba(132,204,22,.12); color: #65a30d; }
+
+    /* Right: Login form */
+    .right-panel {
+      padding: 44px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 28px;
+    }
+
+    .form-header h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--ink);
+    }
+    .form-header p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .form-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .06em;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .form-group input, .form-group select {
+      background: var(--card);
+      border: 1px solid var(--stroke2);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--ink);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-group input::placeholder { color: var(--muted2); }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px var(--greenGlow);
+      background: #fff;
+    }
+    .form-group select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+    .form-group select option { background: #fff; color: var(--ink); }
+
+    .form-group .input-hint {
+      font-size: 11px;
+      color: var(--muted2);
+      margin-top: 2px;
+    }
+
+    .error-msg {
+      font-size: 13px;
+      color: var(--red);
+      display: none;
+      padding: 10px 14px;
+      background: rgba(239,68,68,.06);
+      border: 1px solid rgba(239,68,68,.15);
+      border-radius: 10px;
+    }
+
+    .btn-connect {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--green), #0d9488);
+      color: #ffffff;
+      font-family: var(--font-ui);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .25s;
+      letter-spacing: .02em;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(16,185,129,.25);
+    }
+    .btn-connect::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,.2) 50%, transparent 60%);
+      transform: translateX(-100%);
+      transition: transform .6s;
+    }
+    .btn-connect:hover::before { transform: translateX(100%); }
+    .btn-connect:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(16,185,129,.3);
+    }
+    .btn-connect:active { transform: translateY(0); }
+    .btn-connect:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--muted2);
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--stroke2);
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted2);
+    }
+    .footer-note a {
+      color: var(--green);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Responsive */
+    @media (max-width: 800px) {
+      .container {
+        grid-template-columns: 1fr;
+        max-width: 520px;
+      }
+      .left-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--stroke);
+        padding: 28px 24px;
+      }
+      .right-panel { padding: 28px 24px; }
+      .head-diagram svg { width: 180px; height: 210px; }
+    }
+
+    /* Pulse animation on brand icon */
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 4px 16px rgba(16,185,129,.25); }
+      50% { box-shadow: 0 4px 16px rgba(16,185,129,.25), 0 0 0 8px rgba(16,185,129,0); }
+    }
+    .brand-icon { animation: pulse 2.5s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+  <!-- Animated wave background -->
+  <div class="bg-waves">
+    <svg viewBox="0 0 1440 800" preserveAspectRatio="none">
+      <path id="wave1" fill="none" stroke="#10b981" stroke-width="1.5">
+        <animate attributeName="d"
+          values="M0,400 C200,350 400,450 600,400 C800,350 1000,450 1200,400 C1350,370 1440,400 1440,400;
+                  M0,400 C200,450 400,350 600,400 C800,450 1000,350 1200,400 C1350,430 1440,400 1440,400;
+                  M0,400 C200,350 400,450 600,400 C800,350 1000,450 1200,400 C1350,370 1440,400 1440,400"
+          dur="6s" repeatCount="indefinite"/>
+      </path>
+      <path id="wave2" fill="none" stroke="#3b82f6" stroke-width="1">
+        <animate attributeName="d"
+          values="M0,420 C240,380 480,460 720,420 C960,380 1200,460 1440,420;
+                  M0,420 C240,460 480,380 720,420 C960,460 1200,380 1440,420;
+                  M0,420 C240,380 480,460 720,420 C960,380 1200,460 1440,420"
+          dur="5s" repeatCount="indefinite"/>
+      </path>
+      <path id="wave3" fill="none" stroke="#84cc16" stroke-width="1">
+        <animate attributeName="d"
+          values="M0,380 C180,340 360,420 540,380 C720,340 900,420 1080,380 C1260,340 1440,380 1440,380;
+                  M0,380 C180,420 360,340 540,380 C720,420 900,340 1080,380 C1260,420 1440,380 1440,380;
+                  M0,380 C180,340 360,420 540,380 C720,340 900,420 1080,380 C1260,340 1440,380 1440,380"
+          dur="7s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+  </div>
+
+  <div class="page">
+    <div class="container">
+
+      <!-- Left: Headband instructions -->
+      <div class="left-panel">
+        <div class="brand">
+          <div class="brand-icon">🧠</div>
+          <div class="brand-text">
+            <h1>NEUROWATCH</h1>
+            <p>AI-Based Hybrid EEG Monitor</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-title">Electrode Placement Guide</div>
+
+          <!-- Head top-view diagram (SVG) -->
+          <div class="head-diagram">
+            <svg viewBox="0 0 260 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Head outline -->
+              <ellipse cx="130" cy="145" rx="95" ry="115" stroke="rgba(0,0,0,.15)" stroke-width="1.5" fill="rgba(0,0,0,.02)"/>
+              <!-- Nose indicator -->
+              <path d="M130 28 L122 42 L138 42 Z" fill="rgba(0,0,0,.06)" stroke="rgba(0,0,0,.12)" stroke-width="1"/>
+              <text x="130" y="22" text-anchor="middle" fill="rgba(0,0,0,.3)" font-size="10" font-family="JetBrains Mono">FRONT</text>
+              <text x="130" y="278" text-anchor="middle" fill="rgba(0,0,0,.3)" font-size="10" font-family="JetBrains Mono">BACK</text>
+
+              <!-- Cross-hair lines -->
+              <line x1="130" y1="45" x2="130" y2="250" stroke="rgba(0,0,0,.06)" stroke-width="1" stroke-dasharray="4,4"/>
+              <line x1="40" y1="145" x2="220" y2="145" stroke="rgba(0,0,0,.06)" stroke-width="1" stroke-dasharray="4,4"/>
+
+              <!-- FP1 -->
+              <circle cx="105" cy="62" r="9" fill="rgba(16,185,129,.15)" stroke="#10b981" stroke-width="2"/>
+              <circle cx="105" cy="62" r="3" fill="#10b981"/>
+              <text x="78" y="57" fill="#059669" font-size="11" font-weight="600" font-family="JetBrains Mono">FP1</text>
+
+              <!-- FP2 -->
+              <circle cx="155" cy="62" r="9" fill="rgba(16,185,129,.15)" stroke="#10b981" stroke-width="2"/>
+              <circle cx="155" cy="62" r="3" fill="#10b981"/>
+              <text x="170" y="57" fill="#059669" font-size="11" font-weight="600" font-family="JetBrains Mono">FP2</text>
+
+              <!-- F7 -->
+              <circle cx="55" cy="110" r="9" fill="rgba(16,185,129,.15)" stroke="#10b981" stroke-width="2"/>
+              <circle cx="55" cy="110" r="3" fill="#10b981"/>
+              <text x="25" y="105" fill="#059669" font-size="11" font-weight="600" font-family="JetBrains Mono">F7</text>
+
+              <!-- F8 -->
+              <circle cx="205" cy="110" r="9" fill="rgba(16,185,129,.15)" stroke="#10b981" stroke-width="2"/>
+              <circle cx="205" cy="110" r="3" fill="#10b981"/>
+              <text x="220" y="105" fill="#059669" font-size="11" font-weight="600" font-family="JetBrains Mono">F8</text>
+
+              <!-- O1 -->
+              <circle cx="100" cy="230" r="9" fill="rgba(59,130,246,.15)" stroke="#3b82f6" stroke-width="2"/>
+              <circle cx="100" cy="230" r="3" fill="#3b82f6"/>
+              <text x="72" y="245" fill="#2563eb" font-size="11" font-weight="600" font-family="JetBrains Mono">O1</text>
+
+              <!-- O2 -->
+              <circle cx="160" cy="230" r="9" fill="rgba(59,130,246,.15)" stroke="#3b82f6" stroke-width="2"/>
+              <circle cx="160" cy="230" r="3" fill="#3b82f6"/>
+              <text x="175" y="245" fill="#2563eb" font-size="11" font-weight="600" font-family="JetBrains Mono">O2</text>
+
+              <!-- Ear-L -->
+              <circle cx="28" cy="150" r="9" fill="rgba(132,204,22,.15)" stroke="#84cc16" stroke-width="2"/>
+              <circle cx="28" cy="150" r="3" fill="#84cc16"/>
+              <text x="2" y="170" fill="#65a30d" font-size="9" font-weight="600" font-family="JetBrains Mono">EAR-L</text>
+
+              <!-- Ear-R -->
+              <circle cx="232" cy="150" r="9" fill="rgba(132,204,22,.15)" stroke="#84cc16" stroke-width="2"/>
+              <circle cx="232" cy="150" r="3" fill="#84cc16"/>
+              <text x="214" y="170" fill="#65a30d" font-size="9" font-weight="600" font-family="JetBrains Mono">EAR-R</text>
+
+              <!-- Glow pulse rings -->
+              <circle cx="105" cy="62" r="9" fill="none" stroke="#10b981" stroke-width="1" opacity=".4">
+                <animate attributeName="r" values="9;18;9" dur="2.5s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values=".4;0;.4" dur="2.5s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="155" cy="62" r="9" fill="none" stroke="#10b981" stroke-width="1" opacity=".4">
+                <animate attributeName="r" values="9;18;9" dur="2.5s" repeatCount="indefinite" begin=".3s"/>
+                <animate attributeName="opacity" values=".4;0;.4" dur="2.5s" repeatCount="indefinite" begin=".3s"/>
+              </circle>
+            </svg>
+          </div>
+        </div>
+
+        <div class="instructions">
+          <div class="section-title">How to Wear the Headband</div>
+
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>Clean Electrode Sites</h4>
+              <p>Gently clean the forehead, temples, and earlobes with the alcohol prep pad. Ensure skin is dry before placement.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>Position Frontal Electrodes</h4>
+              <p>Place <span class="electrode-tag tag-green">FP1</span> <span class="electrode-tag tag-green">FP2</span> on the forehead, 2 cm above each eyebrow. Secure <span class="electrode-tag tag-green">F7</span> <span class="electrode-tag tag-green">F8</span> at the temples.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>Attach Occipital Sensors</h4>
+              <p>Slide the headband so <span class="electrode-tag tag-blue">O1</span> <span class="electrode-tag tag-blue">O2</span> sit at the back of the skull, just above the hairline.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <h4>Clip Ear References</h4>
+              <p>Attach <span class="electrode-tag tag-lime">EAR-L</span> <span class="electrode-tag tag-lime">EAR-R</span> clips to each earlobe. These serve as the reference & ground electrodes.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-content">
+              <h4>Power On & Connect</h4>
+              <p>Press the button on the ESP32 module. The green LED will blink until connected. Enter the device IP below and click <strong>Connect</strong>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Login form -->
+      <div class="right-panel">
+        <div class="form-header">
+          <h2>Start Session</h2>
+          <p>Enter patient details and connect to your ESP32 device.</p>
+        </div>
+
+        <form id="loginForm" class="form-grid" autocomplete="off">
+          <div class="form-group full">
+            <label for="patientName">Patient Name *</label>
+            <input type="text" id="patientName" placeholder="e.g. John Doe" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="patientAge">Age</label>
+              <input type="number" id="patientAge" placeholder="e.g. 28" min="1" max="120" />
+            </div>
+            <div class="form-group">
+              <label for="patientGender">Gender</label>
+              <select id="patientGender">
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group full">
+            <label for="doctorId">Doctor / Session ID</label>
+            <input type="text" id="doctorId" placeholder="e.g. DR-2024-001" />
+          </div>
+
+          <div class="divider">Device Configuration</div>
+
+          <div class="form-group full">
+            <label for="esp32Ip">ESP32 IP Address *</label>
+            <input type="text" id="esp32Ip" placeholder="e.g. 192.168.1.42" required />
+            <div class="input-hint">Found on the ESP32 serial monitor or device display after WiFi connection.</div>
+          </div>
+
+          <div class="error-msg" id="errorMsg"></div>
+
+          <button type="submit" class="btn-connect" id="btnConnect">
+            <span id="btnText">⚡ Connect to Dashboard</span>
+            <div class="spinner" id="spinner"></div>
+          </button>
+        </form>
+
+        <div class="footer-note">
+          ESP32-S3 + ADS1299 · 24-bit · 250 SPS<br/>
+          <a href="#">NeuroWatch v1.0</a> — AI-Based Hybrid Wearable EEG
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const btnConnect = document.getElementById('btnConnect');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.style.display = 'none';
+
+      const name   = document.getElementById('patientName').value.trim();
+      const age    = document.getElementById('patientAge').value.trim();
+      const gender = document.getElementById('patientGender').value;
+      const doctor = document.getElementById('doctorId').value.trim();
+      const esp32  = document.getElementById('esp32Ip').value.trim();
+
+      if (!name) { showError('Patient name is required.'); return; }
+      if (!esp32) { showError('ESP32 IP address is required.'); return; }
+
+      // Simple IP validation
+      const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+      if (!ipPattern.test(esp32)) { showError('Enter a valid IP address (e.g. 192.168.1.42).'); return; }
+
+      // Show loading
+      btnConnect.disabled = true;
+      btnText.style.display = 'none';
+      spinner.style.display = 'block';
+
+      try {
+        // Save patient to MongoDB via server API
+        const res = await fetch('/api/patient', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, age: age ? parseInt(age) : null, gender, doctorId: doctor, esp32Ip: esp32 }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || 'Failed to save patient data.');
+          resetBtn();
+          return;
+        }
+
+        // Store session info for dashboard
+        sessionStorage.setItem('nw_patient', JSON.stringify({
+          id: data.patientId,
+          name,
+          age,
+          gender,
+          doctorId: doctor,
+          esp32Ip: esp32,
+          sessionStart: Date.now(),
+        }));
+
+        // Redirect to dashboard
+        window.location.href = '/dashboard';
+
+      } catch (err) {
+        showError('Cannot reach server. Make sure the server is running.');
+        resetBtn();
+      }
+    });
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+    }
+
+    function resetBtn() {
+      btnConnect.disabled = false;
+      btnText.style.display = 'inline';
+      spinner.style.display = 'none';
+    }
+  </script>
+</body>
+</html>

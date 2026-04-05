@@ -1,0 +1,14 @@
+{
+  "name": "neurowatch-server",
+  "version": "1.0.0",
+  "description": "NeuroWatch EEG WebSocket relay server — ESP32-S3 to browser",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "mongodb": "^7.1.1",
+    "ws": "^8.17.0"
+  }
+}

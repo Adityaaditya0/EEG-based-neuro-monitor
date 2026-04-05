@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NEUROWATCH EEG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --card: #f8f9fc;
+      --ink: #1a1d26;
+      --muted: #5e6778;
+      --muted2: #8b93a6;
+      --stroke: rgba(0,0,0,0.06);
+      --stroke2: rgba(0,0,0,0.10);
+
+      --green: #10b981;
+      --blue: #3b82f6;
+      --lime: #84cc16;
+      --purple: #8b5cf6;
+
+      --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font-ui); }
+
+    #page { min-height: 100vh; display: flex; flex-direction: column; gap: 14px; padding: 16px; max-width: 1600px; margin: 0 auto; }
+
+    /* Header */
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 18px;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .h-left { display: flex; flex-direction: column; gap: 2px; }
+    .h-title { font-family: var(--font-mono); letter-spacing: .08em; font-size: 14px; font-weight: 600; }
+    .h-sub { font-size: 11px; color: var(--muted); }
+    .h-mid { display: flex; align-items: center; justify-content: center; flex: 1; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(16,185,129,.25);
+      background: rgba(16,185,129,.06);
+      color: var(--green);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 2px rgba(16,185,129,.12); }
+    .h-right { display: flex; flex-direction: column; gap: 4px; text-align: right; }
+    .kv { font-size: 11px; color: var(--muted); }
+    .kv b { color: var(--ink); font-weight: 500; }
+    .kv span { font-family: var(--font-mono); color: var(--muted2); }
+
+    /* Stat cards */
+    #stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 14px 16px;
+      min-height: 62px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat .lbl { font-family: var(--font-mono); font-size: 10px; color: var(--muted2); letter-spacing: .07em; }
+    .stat .val { font-family: var(--font-mono); font-size: 20px; font-weight: 600; display: flex; align-items: baseline; gap: 6px; }
+    .stat .unit { font-size: 12px; color: var(--muted2); font-weight: 500; }
+
+    /* Channel list */
+    #channels { display: flex; flex-direction: column; gap: 10px; }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .leftTag {
+      width: 88px;
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 10px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--stroke);
+      background: var(--card);
+    }
+    .chName { font-family: var(--font-mono); font-weight: 600; font-size: 12px; }
+    .chGroup { font-family: var(--font-mono); font-size: 10px; color: var(--muted2); letter-spacing: .06em; }
+    .traceWrap {
+      flex: 1;
+      min-width: 0;
+      height: 62px;
+      border-radius: 10px;
+      background: #eef1f6;
+      border: 1px solid rgba(0,0,0,.05);
+      overflow: hidden;
+    }
+    canvas { display: block; width: 100%; height: 62px; }
+    .rightInfo {
+      width: 88px;
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      padding-right: 4px;
+    }
+    .uv { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--ink); }
+    .qual { font-family: var(--font-mono); font-size: 10px; color: var(--muted2); }
+
+    /* Bottom packet */
+    #packetBox {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+    .pktHdr { font-family: var(--font-mono); font-size: 10px; letter-spacing: .07em; color: var(--muted2); }
+    .pktLine {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #059669;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 18px;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .footLeft, .footMid { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+    .footLeft b { color: var(--ink); font-weight: 500; }
+    .controls { display: inline-flex; gap: 10px; align-items: center; }
+    .btn {
+      border: 1px solid var(--stroke2);
+      background: var(--card);
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-family: var(--font-ui);
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all .15s ease;
+    }
+    .btn:hover { background: #eef1f6; }
+    .btn-green {
+      border-color: rgba(16,185,129,.25);
+      background: rgba(16,185,129,.06);
+      color: #059669;
+    }
+    .btn-green:hover { background: rgba(16,185,129,.12); }
+    .btn-red {
+      border-color: rgba(239,68,68,.25);
+      background: rgba(239,68,68,.06);
+      color: #dc2626;
+    }
+    .btn-red:hover { background: rgba(239,68,68,.12); }
+    .btn:active { transform: translateY(1px); }
+
+    /* Band diagram */
+    #bands {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .bandsHdr { font-family: var(--font-mono); font-size: 10px; letter-spacing: .07em; color: var(--muted2); }
+    .bandRow { display: grid; grid-template-columns: 70px 1fr 44px; gap: 10px; align-items: center; }
+    .bandName { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+    .bandTrack { height: 8px; border-radius: 999px; background: #eef1f6; border: 1px solid rgba(0,0,0,.04); overflow: hidden; }
+    .bandFill { height: 100%; width: 0%; border-radius: 999px; transition: width .25s ease; }
+    .bandPct { font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-align: right; }
+
+    /* ═══ AI RISK PREDICTION PANEL ═══════════════════════════════════════ */
+    #ai-panel {
+      display: grid;
+      grid-template-columns: 200px 1fr 200px;
+      gap: 14px;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    #ai-panel::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--green), var(--blue), var(--lime));
+      opacity: 0.6;
+    }
+    .ai-hdr {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .07em;
+      color: var(--muted2);
+      margin-bottom: 8px;
+    }
+    /* Gauge */
+    .gauge-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .gauge-svg { width: 170px; height: 110px; }
+    .gauge-bg { fill: none; stroke: #eef1f6; stroke-width: 10; stroke-linecap: round; }
+    .gauge-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.6s cubic-bezier(.4,0,.2,1), stroke 0.4s ease; filter: drop-shadow(0 0 4px rgba(16,185,129,.3)); }
+    .gauge-value {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 700;
+      fill: var(--ink);
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    .gauge-unit { font-size: 14px; fill: var(--muted2); font-weight: 500; }
+    .risk-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-align: center;
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid;
+    }
+    .risk-confidence {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted2);
+      text-align: center;
+    }
+    /* Trend chart */
+    .trend-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .trend-canvas-wrap {
+      flex: 1;
+      min-height: 80px;
+      border-radius: 8px;
+      background: #eef1f6;
+      border: 1px solid rgba(0,0,0,.04);
+      overflow: hidden;
+      position: relative;
+    }
+    #trendCanvas { display: block; width: 100%; height: 100%; }
+    .trend-axis {
+      position: absolute; right: 6px; font-family: var(--font-mono); font-size: 9px; color: var(--muted2);
+    }
+    /* Feature bars */
+    .feat-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .feat-row {
+      display: grid;
+      grid-template-columns: 70px 1fr 32px;
+      gap: 6px;
+      align-items: center;
+    }
+    .feat-name { font-family: var(--font-mono); font-size: 9px; color: var(--muted2); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .feat-track { height: 5px; border-radius: 999px; background: #eef1f6; overflow: hidden; }
+    .feat-fill { height: 100%; border-radius: 999px; transition: width .4s ease; min-width: 2px; }
+    .feat-val { font-family: var(--font-mono); font-size: 9px; color: var(--muted); }
+    /* Alert banner */
+    #alert-banner {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      animation: alertPulse 1s ease-in-out infinite;
+    }
+    #alert-banner.active { display: flex; }
+    #alert-banner.warn {
+      background: rgba(245,158,11,.08);
+      border: 1px solid rgba(245,158,11,.3);
+      color: #d97706;
+    }
+    #alert-banner.danger {
+      background: rgba(239,68,68,.07);
+      border: 1px solid rgba(239,68,68,.3);
+      color: #dc2626;
+    }
+    @keyframes alertPulse {
+      0%, 100% { opacity: 1; } 50% { opacity: .7; }
+    }
+    .alert-icon { font-size: 16px; }
+    /* AI pill in header */
+    .pill-ai {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(59,130,246,.2);
+      background: rgba(59,130,246,.06);
+      color: var(--blue);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .pill-ai .dot { background: var(--blue); }
+    /* Risk history log */
+    #risk-log {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+    }
+    .log-entry .log-time { color: var(--muted2); }
+    .log-entry .log-risk { font-weight: 600; }
+
+    .section-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: var(--muted2);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--stroke);
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+    }
+    .left-col { display: flex; flex-direction: column; gap: 10px; }
+    .right-col { display: flex; flex-direction: column; gap: 14px; }
+
+    @media (max-width: 1000px) {
+      .main-grid { grid-template-columns: 1fr; }
+      #stats { grid-template-columns: repeat(2, 1fr); }
+      #ai-panel { grid-template-columns: 1fr; }
+      .h-mid { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="page">
+    <div id="header">
+      <div class="h-left">
+        <div class="h-title">NEUROWATCH EEG</div>
+        <div class="h-sub">AI-Based Hybrid Wearable Monitor — Simulation Phase</div>
+      </div>
+      <div class="h-mid">
+        <div class="pill" id="mode-pill"><span class="dot"></span><span id="mode-text">Simulating ESP32 Stream</span></div>
+        <div class="pill-ai" id="ai-pill"><span class="dot"></span><span id="ai-status">AI Loading…</span></div>
+      </div>
+      <div class="h-right">
+        <div class="kv">Patient: <b id="patient">Demo User</b></div>
+        <div class="kv">Session: <span id="session">00:00:00</span></div>
+      </div>
+    </div>
+
+    <div id="stats">
+      <div class="stat"><div class="lbl">SAMPLE RATE</div><div class="val"><span id="st-sr">250</span><span class="unit">Hz</span></div></div>
+      <div class="stat"><div class="lbl">CHANNELS</div><div class="val"><span id="st-ch">8</span><span class="unit">CH</span></div></div>
+      <div class="stat"><div class="lbl">PACKETS</div><div class="val"><span id="st-pk">0</span></div></div>
+      <div class="stat"><div class="lbl">DATA RATE</div><div class="val"><span id="st-br">0</span><span class="unit">B/s</span></div></div>
+    </div>
+
+    <div class="main-grid">
+      <div class="left-col">
+        <div class="section-title">REAL-TIME 8-CHANNEL EEG STREAM</div>
+        <div id="channels"></div>
+      </div>
+
+      <div class="right-col">
+        <div class="section-title">AI DIAGNOSTICS & BIOMARKERS</div>
+        
+        <div id="alert-banner">
+          <span class="alert-icon">⚠</span>
+          <span id="alert-text">ELEVATED RISK DETECTED</span>
+        </div>
+
+        <div id="ai-panel" style="grid-template-columns: 1fr; gap: 20px;">
+          <div class="gauge-wrap" style="position:relative;">
+            <svg class="gauge-svg" viewBox="0 0 170 110" style="width: 220px; height: 140px;">
+              <path class="gauge-bg" d="M 20 95 A 65 65 0 0 1 150 95" />
+              <path class="gauge-fill" id="gauge-arc" d="M 20 95 A 65 65 0 0 1 150 95" />
+              <text class="gauge-value" x="85" y="78"><tspan id="gauge-pct">—</tspan><tspan class="gauge-unit">%</tspan></text>
+            </svg>
+            <div style="position:absolute; bottom: 8px;">
+              <div class="risk-label" id="risk-label" style="color:var(--muted2);border-color:var(--stroke)">INITIALIZING</div>
+            </div>
+          </div>
+          
+          <div class="risk-confidence" id="risk-conf" style="margin-top:-10px;">Model: Loading…</div>
+
+          <div class="trend-wrap">
+            <div class="ai-hdr">RISK TREND — LAST 120 SECONDS</div>
+            <div class="trend-canvas-wrap">
+              <canvas id="trendCanvas" height="90"></canvas>
+              <span class="trend-axis" style="top:2px">100%</span>
+              <span class="trend-axis" style="bottom:2px">0%</span>
+            </div>
+          </div>
+
+          <div class="feat-wrap">
+            <div class="ai-hdr">TOP RISK FACTORS</div>
+            <div id="feat-bars"></div>
+          </div>
+        </div>
+
+        <div id="bands">
+          <div class="bandsHdr">BRAINWAVE BANDS — PERCENTAGE (EST.)</div>
+          <div class="bandRow">
+            <div class="bandName">Delta</div>
+            <div class="bandTrack"><div class="bandFill" id="bf-delta" style="background:#3b82f6"></div></div>
+            <div class="bandPct" id="bp-delta">—</div>
+          </div>
+          <div class="bandRow">
+            <div class="bandName">Theta</div>
+            <div class="bandTrack"><div class="bandFill" id="bf-theta" style="background:#10b981"></div></div>
+            <div class="bandPct" id="bp-theta">—</div>
+          </div>
+          <div class="bandRow">
+            <div class="bandName">Alpha</div>
+            <div class="bandTrack"><div class="bandFill" id="bf-alpha" style="background:#84cc16"></div></div>
+            <div class="bandPct" id="bp-alpha">—</div>
+          </div>
+          <div class="bandRow">
+            <div class="bandName">Beta</div>
+            <div class="bandTrack"><div class="bandFill" id="bf-beta" style="background:#6366f1"></div></div>
+            <div class="bandPct" id="bp-beta">—</div>
+          </div>
+          <div class="bandRow">
+            <div class="bandName">Gamma</div>
+            <div class="bandTrack"><div class="bandFill" id="bf-gamma" style="background:#8b93a6"></div></div>
+            <div class="bandPct" id="bp-gamma">—</div>
+          </div>
+        </div>
+
+        <div id="risk-log">
+          <div class="ai-hdr">RISK EVENT LOG</div>
+          <div id="log-entries"><div class="log-entry"><span class="log-time">--:--:--</span><span>Waiting for AI model…</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="packetBox">
+      <div class="pktHdr">LAST ESP32 PACKET — JSON OVER WEBSOCKET</div>
+      <div class="pktLine" id="pkt">Waiting for stream…</div>
+    </div>
+
+    <div id="footer">
+      <div class="footLeft">WebSocket: <b id="wsLabel">ws://ESP32_IP:8080</b></div>
+      <div class="footMid">ESP32-S3 + ADS1299 · 24-bit · 250 SPS</div>
+      <div class="controls">
+        <button class="btn" id="btnPause" type="button">Pause</button>
+        <button class="btn" id="btnStop" type="button">Stop</button>
+        <button class="btn btn-green" id="btnExport" type="button">Export CSV</button>
+        <button class="btn" id="btnAnalyze" type="button" style="background:rgba(139,92,246,.06);border-color:rgba(139,92,246,.25);color:#7c3aed">Brain AI Analysis 🔬</button>
+        <button class="btn btn-red" id="btnLogout" type="button" style="margin-left:20px">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========================================================================
+    // Session info from login
+    // ========================================================================
+    const sessionData = JSON.parse(sessionStorage.getItem('nw_patient') || 'null');
+    if (!sessionData) {
+      // Not logged in — redirect to login
+      window.location.href = '/login';
+    }
+
+    // Show patient name in header
+    if (sessionData) {
+      document.getElementById('patient').textContent = sessionData.name || 'Unknown';
+    }
+
+    // ========================================================================
+    // Config
+    // ========================================================================
+    const ESP32_IP = (sessionData && sessionData.esp32Ip) || location.hostname || 'localhost';
+    const WS_PORT = 8080;
+    const WS_HOST = location.hostname || 'localhost';
+    const WS_URL  = `ws://${WS_HOST}:${WS_PORT}`;
+
+    const SR = 250;
+    const BUF_SIZE = 1500;
+    const CHANNELS = [
+      { n: 'FP1',  g: 'FRONTAL',   c: '#059669' },
+      { n: 'FP2',  g: 'FRONTAL',   c: '#059669' },
+      { n: 'F7',   g: 'TEMPORAL',  c: '#059669' },
+      { n: 'F8',   g: 'TEMPORAL',  c: '#059669' },
+      { n: 'O1',   g: 'OCCIPITAL', c: '#2563eb' },
+      { n: 'O2',   g: 'OCCIPITAL', c: '#2563eb' },
+      { n: 'Ear-L',g: 'EAR',       c: '#65a30d' },
+      { n: 'Ear-R',g: 'EAR',       c: '#65a30d' },
+    ];
+
+    // ========================================================================
+    // State
+    // ========================================================================
+    const bufs = CHANNELS.map(() => new Float32Array(BUF_SIZE));
+    const chMin = new Float32Array(8).fill(-100);
+    const chMax = new Float32Array(8).fill(100);
+
+    const cvs = [];
+    const cxs = [];
+
+    let writeIdx = 0;
+    let packetCount = 0;
+    let sessionStart = Date.now();
+
+    let ws = null;
+    let wsConnected = false;
+    let lastRealPacketAt = 0;
+
+    let isPaused = false;
+    let isStopped = false;
+
+    // bytes/sec tracking
+    let bytesThisSecond = 0;
+    let bytesPerSecond = 0;
+
+    // simulation
+    let simTimer = null;
+    let simPhase = 0;
+
+    // CSV data collection (client-side)
+    const csvRows = [];
+    const CSV_HEADER = 'timestamp,FP1,FP2,F7,F8,O1,O2,EarL,EarR';
+
+    // ========================================================================
+    // DOM build
+    // ========================================================================
+    function buildRows() {
+      const container = document.getElementById('channels');
+      container.innerHTML = '';
+      CHANNELS.forEach((ch, i) => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `
+          <div class="leftTag">
+            <div class="chName" style="color:${ch.c}">${ch.n}</div>
+            <div class="chGroup">${ch.g}</div>
+          </div>
+          <div class="traceWrap">
+            <canvas id="cv${i}" height="62"></canvas>
+          </div>
+          <div class="rightInfo">
+            <div class="uv" id="uv${i}">0.0 µV</div>
+            <div class="qual" id="q${i}">Good</div>
+          </div>
+        `;
+        container.appendChild(row);
+        const cv = row.querySelector('#cv' + i);
+        cvs.push(cv);
+        cxs.push(cv.getContext('2d'));
+      });
+    }
+
+    function resizeCanvases() {
+      for (const cv of cvs) {
+        const w = cv.parentElement.clientWidth;
+        if (w > 0) cv.width = w;
+      }
+    }
+    window.addEventListener('resize', resizeCanvases);
+
+    // ========================================================================
+    // UI updates
+    // ========================================================================
+    function setMode(text) {
+      document.getElementById('mode-text').textContent = text;
+    }
+
+    function updateSessionClock() {
+      const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+      const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+      const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+      const s = String(elapsed % 60).padStart(2, '0');
+      document.getElementById('session').textContent = `${h}:${m}:${s}`;
+    }
+
+    function setStats() {
+      document.getElementById('st-sr').textContent = String(SR);
+      document.getElementById('st-ch').textContent = '8';
+      document.getElementById('st-pk').textContent = packetCount.toLocaleString();
+      document.getElementById('st-br').textContent = bytesPerSecond.toLocaleString();
+    }
+
+    // ========================================================================
+    // Packet ingest
+    // ========================================================================
+    function ingestPacket(pkt, isReal) {
+      if (isStopped || isPaused) return;
+      if (!pkt || !Array.isArray(pkt.ch) || pkt.ch.length !== 8) return;
+      packetCount++;
+      if (isReal) lastRealPacketAt = Date.now();
+
+      const pktStr = JSON.stringify(pkt);
+      bytesThisSecond += pktStr.length;
+      document.getElementById('pkt').textContent = pktStr;
+
+      // Collect row for CSV export
+      const ts = pkt.ts || Date.now();
+      csvRows.push(`${ts},${pkt.ch[0].toFixed(2)},${pkt.ch[1].toFixed(2)},${pkt.ch[2].toFixed(2)},${pkt.ch[3].toFixed(2)},${pkt.ch[4].toFixed(2)},${pkt.ch[5].toFixed(2)},${pkt.ch[6].toFixed(2)},${pkt.ch[7].toFixed(2)}`);
+
+      for (let i = 0; i < 8; i++) {
+        const v = Number(pkt.ch[i]) || 0;
+        bufs[i][writeIdx] = v;
+        if (v < chMin[i]) chMin[i] = v; else chMin[i] += 0.001;
+        if (v > chMax[i]) chMax[i] = v; else chMax[i] -= 0.001;
+
+        const uv = document.getElementById('uv' + i);
+        const q  = document.getElementById('q' + i);
+        if (uv) uv.textContent = `${v.toFixed(1)} µV`;
+        if (q) q.textContent = 'Good';
+      }
+      writeIdx = (writeIdx + 1) % BUF_SIZE;
+    }
+
+    // ========================================================================
+    // WebSocket
+    // ========================================================================
+    function connectWS() {
+      if (isStopped) return;
+      document.getElementById('wsLabel').textContent = WS_URL;
+      if (ws) { try { ws.close(); } catch {} }
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        wsConnected = true;
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'status') {
+            // If hardware is connected and producing data, stop sim.
+            if (msg.esp32 && !isPaused && !isStopped) {
+              setMode('ESP32 Stream Live');
+              stopSimulation();
+            }
+            return;
+          }
+          if (!isPaused && !isStopped) {
+            setMode('ESP32 Stream Live');
+            stopSimulation();
+          }
+          ingestPacket(msg, true);
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        wsConnected = false;
+        // Keep sim running even if server drops, so the UI stays like the demo.
+        if (!isStopped) {
+          setMode('Simulating ESP32 Stream');
+          startSimulation();
+          setTimeout(connectWS, 2500);
+        }
+      };
+
+      ws.onerror = () => {
+        // If server isn't reachable, fall back to simulation.
+        if (!isStopped) {
+          setMode('Simulating ESP32 Stream');
+          startSimulation();
+        }
+      };
+    }
+
+    // ========================================================================
+    // Real EEG Data Replay — Bonn University EEG Dataset
+    // Source: Andrzejak et al. (2001), Phys. Rev. E, 64, 061907
+    // Loads real recorded EEG data and replays it through the dashboard
+    // ========================================================================
+
+    let realEEGData = null;  // Will hold the loaded dataset
+    let dataLoaded = false;
+
+    // Load real EEG dataset from server
+    async function loadRealEEGData() {
+      try {
+        setMode('Loading Real EEG Data...');
+        const res = await fetch('/eeg_data.json');
+        if (!res.ok) throw new Error('Failed to load');
+        realEEGData = await res.json();
+        dataLoaded = true;
+        console.log(`Loaded Bonn EEG Dataset: ${realEEGData.channels.length} channels, ` +
+                    `${realEEGData.data[0].length} samples each`);
+        setMode('Replaying Real EEG Data');
+      } catch (e) {
+        console.warn('Could not load eeg_data.json, using fallback synthesis:', e.message);
+        setMode('Simulating ESP32 Stream (Fallback)');
+        dataLoaded = false;
+      }
+    }
+
+    // Load data immediately
+    loadRealEEGData();
+
+    function startSimulation() {
+      if (simTimer) return;
+      let sampleIdx = 0;
+
+      simTimer = setInterval(() => {
+        if (isStopped || isPaused) return;
+        if (Date.now() - lastRealPacketAt < 750) return;
+
+        const ch = new Array(8);
+
+        if (dataLoaded && realEEGData && realEEGData.data) {
+          // === REAL DATA MODE: replay recorded EEG ===
+          const totalSamples = realEEGData.data[0].length;
+
+          for (let i = 0; i < 8; i++) {
+            const channelData = realEEGData.data[i];
+            if (channelData && channelData.length > 0) {
+              // Loop through the data, add slight noise for natural feel
+              ch[i] = channelData[sampleIdx % totalSamples] + (Math.random() - 0.5) * 2;
+            } else {
+              ch[i] = (Math.random() - 0.5) * 10;
+            }
+          }
+
+          sampleIdx++;
+          // Log loop point
+          if (sampleIdx % totalSamples === 0) {
+            console.log('EEG data loop — replaying from start');
+          }
+        } else {
+          // === FALLBACK: minimal synthesized data ===
+          const t = sampleIdx / SR;
+          for (let i = 0; i < 8; i++) {
+            ch[i] = 20 * Math.sin(2 * Math.PI * (1 + i * 0.5) * t)
+                   + 10 * Math.sin(2 * Math.PI * (8 + i) * t)
+                   + (Math.random() - 0.5) * 5;
+          }
+          sampleIdx++;
+        }
+        const pkt = { ts: Date.now(), ch };
+        ingestPacket(pkt, false);
+        try { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'sim_data', pkt })); } catch(e){}
+      }, Math.round(1000 / SR));
+    }
+
+    function stopSimulation() {
+      if (!simTimer) return;
+      clearInterval(simTimer);
+      simTimer = null;
+    }
+
+    // ========================================================================
+    // Drawing
+    // ========================================================================
+    function draw(i) {
+      const cv = cvs[i];
+      const cx = cxs[i];
+      const w = cv.width;
+      const h = cv.height;
+      if (!w) return;
+      const mid = h / 2;
+
+      cx.fillStyle = '#eef1f6';
+      cx.fillRect(0, 0, w, h);
+
+      // faint grid
+      cx.strokeStyle = 'rgba(0,0,0,.06)';
+      cx.lineWidth = 1;
+      cx.beginPath();
+      cx.moveTo(0, mid);
+      cx.lineTo(w, mid);
+      cx.stroke();
+
+      const hi = Math.max(chMax[i], 50);
+      const lo = Math.min(chMin[i], -50);
+      const rng = Math.max(hi - lo, 100);
+      const sc = (h * 0.80) / rng;
+
+      cx.strokeStyle = CHANNELS[i].c;
+      cx.lineWidth = 2;
+      cx.lineJoin = 'round';
+      cx.lineCap = 'round';
+      cx.beginPath();
+      for (let px = 0; px < w; px++) {
+        const si = Math.floor(px * BUF_SIZE / w);
+        const bi = (writeIdx - BUF_SIZE + si + BUF_SIZE * 4) % BUF_SIZE;
+        const v = bufs[i][bi];
+        const y = Math.max(2, Math.min(h - 2, mid - v * sc));
+        if (px === 0) cx.moveTo(px, y); else cx.lineTo(px, y);
+      }
+      cx.stroke();
+    }
+
+    function render() {
+      for (let i = 0; i < 8; i++) draw(i);
+      requestAnimationFrame(render);
+    }
+
+    // ========================================================================
+    // Band power estimation (FFT)
+    // ========================================================================
+    function hann(n, N) {
+      return 0.5 - 0.5 * Math.cos((2 * Math.PI * n) / (N - 1));
+    }
+
+    function fftRadix2(re, im) {
+      const N = re.length;
+      // bit-reversal
+      for (let i = 1, j = 0; i < N; i++) {
+        let bit = N >> 1;
+        for (; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if (i < j) {
+          [re[i], re[j]] = [re[j], re[i]];
+          [im[i], im[j]] = [im[j], im[i]];
+        }
+      }
+
+      for (let len = 2; len <= N; len <<= 1) {
+        const ang = (-2 * Math.PI) / len;
+        const wlenRe = Math.cos(ang);
+        const wlenIm = Math.sin(ang);
+        for (let i = 0; i < N; i += len) {
+          let wRe = 1;
+          let wIm = 0;
+          for (let j = 0; j < len / 2; j++) {
+            const uRe = re[i + j];
+            const uIm = im[i + j];
+            const vRe = re[i + j + len / 2] * wRe - im[i + j + len / 2] * wIm;
+            const vIm = re[i + j + len / 2] * wIm + im[i + j + len / 2] * wRe;
+            re[i + j] = uRe + vRe;
+            im[i + j] = uIm + vIm;
+            re[i + j + len / 2] = uRe - vRe;
+            im[i + j + len / 2] = uIm - vIm;
+            const nextWRe = wRe * wlenRe - wIm * wlenIm;
+            wIm = wRe * wlenIm + wIm * wlenRe;
+            wRe = nextWRe;
+          }
+        }
+      }
+    }
+
+    function computeBandPercents() {
+      const N = 256;
+      const re = new Float32Array(N);
+      const im = new Float32Array(N);
+      for (let n = 0; n < N; n++) {
+        const bi = (writeIdx - N + n + BUF_SIZE * 4) % BUF_SIZE;
+        re[n] = bufs[0][bi] * hann(n, N);
+        im[n] = 0;
+      }
+
+      fftRadix2(re, im);
+
+      // power spectrum for 0..Nyquist
+      const df = SR / N;
+      const ny = N / 2;
+      const bands = {
+        delta: [0.5, 4],
+        theta: [4, 8],
+        alpha: [8, 13],
+        beta: [13, 30],
+        gamma: [30, 45],
+      };
+
+      const sums = { delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0 };
+      let total = 0;
+
+      for (let k = 1; k <= ny; k++) {
+        const f = k * df;
+        const p = re[k] * re[k] + im[k] * im[k];
+        total += p;
+        if (f >= bands.delta[0] && f < bands.delta[1]) sums.delta += p;
+        else if (f >= bands.theta[0] && f < bands.theta[1]) sums.theta += p;
+        else if (f >= bands.alpha[0] && f < bands.alpha[1]) sums.alpha += p;
+        else if (f >= bands.beta[0] && f < bands.beta[1]) sums.beta += p;
+        else if (f >= bands.gamma[0] && f < bands.gamma[1]) sums.gamma += p;
+      }
+
+      const denom = total || 1;
+      return {
+        delta: sums.delta / denom,
+        theta: sums.theta / denom,
+        alpha: sums.alpha / denom,
+        beta: sums.beta / denom,
+        gamma: sums.gamma / denom,
+      };
+    }
+
+    function setBandUI(p) {
+      const clampPct = (x) => Math.max(0, Math.min(100, Math.round(x * 100)));
+      const pairs = [
+        ['delta', p.delta],
+        ['theta', p.theta],
+        ['alpha', p.alpha],
+        ['beta', p.beta],
+        ['gamma', p.gamma],
+      ];
+      for (const [name, val] of pairs) {
+        const pct = clampPct(val);
+        const fill = document.getElementById('bf-' + name);
+        const lbl  = document.getElementById('bp-' + name);
+        if (fill) fill.style.width = pct + '%';
+        if (lbl) lbl.textContent = pct + '%';
+      }
+    }
+
+    // ========================================================================
+    // Timers
+    // ========================================================================
+    setInterval(() => {
+      bytesPerSecond = bytesThisSecond;
+      bytesThisSecond = 0;
+      setStats();
+    }, 1000);
+
+    setInterval(() => {
+      if (isStopped) return;
+      if (packetCount < 10) return;
+      try { setBandUI(computeBandPercents()); } catch {}
+    }, 800);
+
+    setInterval(updateSessionClock, 1000);
+
+    // ========================================================================
+    // Init
+    // ========================================================================
+    buildRows();
+    resizeCanvases();
+    updateSessionClock();
+    setStats();
+    connectWS();
+    startSimulation();
+    requestAnimationFrame(render);
+
+    // Controls
+    const btnPause = document.getElementById('btnPause');
+    const btnStop  = document.getElementById('btnStop');
+
+    btnPause.addEventListener('click', () => {
+      if (isStopped) return;
+      isPaused = !isPaused;
+      btnPause.textContent = isPaused ? 'Resume' : 'Pause';
+      if (isPaused) {
+        setMode('Paused');
+        stopSimulation();
+      } else {
+        setMode('Simulating ESP32 Stream');
+        startSimulation();
+      }
+    });
+
+    function resetBuffers() {
+      for (let i = 0; i < 8; i++) {
+        bufs[i].fill(0);
+        chMin[i] = -100;
+        chMax[i] = 100;
+        const uv = document.getElementById('uv' + i);
+        if (uv) uv.textContent = '0.0 µV';
+      }
+      writeIdx = 0;
+    }
+
+    btnStop.addEventListener('click', () => {
+      isStopped = !isStopped;
+      if (isStopped) {
+        isPaused = false;
+        btnPause.textContent = 'Pause';
+        btnStop.textContent = 'Start';
+        setMode('Stopped');
+        stopSimulation();
+        try { if (ws) ws.close(); } catch {}
+        resetBuffers();
+        packetCount = 0;
+        bytesThisSecond = 0;
+        bytesPerSecond = 0;
+        document.getElementById('pkt').textContent = 'Stopped.';
+        setBandUI({ delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0 });
+        setStats();
+        sessionStart = Date.now();
+        updateSessionClock();
+      } else {
+        btnStop.textContent = 'Stop';
+        setMode('Simulating ESP32 Stream');
+        sessionStart = Date.now();
+        updateSessionClock();
+        connectWS();
+        startSimulation();
+      }
+    });
+
+    // Export CSV button — client-side download
+    function downloadCsv() {
+      if (csvRows.length === 0) {
+        alert('No data recorded yet. Wait for some EEG data to accumulate.');
+        return;
+      }
+      const patientName = (sessionData && sessionData.name) || 'unknown';
+      const safeName = patientName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `${safeName}_EEG_${ts}.csv`;
+
+      const csvContent = CSV_HEADER + '\n' + csvRows.join('\n') + '\n';
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('btnExport').addEventListener('click', downloadCsv);
+
+    // Logout button
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      sessionStorage.removeItem('nw_patient');
+      window.location.href = '/login';
+    });
+
+    // ================================================================
+    // AI RISK PREDICTION ENGINE
+    // ================================================================
+
+    let aiModel = null;
+    const AI_WINDOW = 512;       // Samples per analysis window
+    const AI_INTERVAL = 800;     // Predict every 800ms
+    const TREND_HISTORY = 150;   // ~120 seconds of trend data
+    const riskHistory = [];
+    let lastAlertLevel = '';
+    const riskLogEntries = [];
+
+    // Load the AI model
+    async function loadAIModel() {
+      try {
+        const res = await fetch('/ai_model.json');
+        if (!res.ok) throw new Error('Model not found');
+        aiModel = await res.json();
+        document.getElementById('ai-status').textContent = `AI Active — ${aiModel.featureNames.length} Features`;
+        document.getElementById('risk-conf').textContent = `Model v${aiModel.version} • ${aiModel.config.featureCount} biomarkers`;
+        buildFeatureBars();
+        addLogEntry('AI model loaded successfully', 'var(--green)');
+        console.log('AI Model loaded:', aiModel.name);
+      } catch (e) {
+        document.getElementById('ai-status').textContent = 'AI Unavailable';
+        document.getElementById('risk-conf').textContent = 'Run: node ai_train.js';
+        console.warn('AI model not loaded:', e.message);
+      }
+    }
+    loadAIModel();
+
+    // Build feature bar elements
+    function buildFeatureBars() {
+      if (!aiModel) return;
+      const container = document.getElementById('feat-bars');
+      container.innerHTML = '';
+      // Show top 8 features
+      const topFeats = aiModel.featureNames.slice(0, 8);
+      for (const fname of topFeats) {
+        const shortName = fname.replace('hjorth','hj').replace('spectral','spec').replace('Crossing','X').replace('Rate','Rt').replace('Pct','%').replace('Over','/');
+        const row = document.createElement('div');
+        row.className = 'feat-row';
+        row.innerHTML = `<div class="feat-name" title="${fname}">${shortName}</div><div class="feat-track"><div class="feat-fill" id="fb-${fname}" style="width:0%;background:var(--muted2)"></div></div><div class="feat-val" id="fv-${fname}">—</div>`;
+        container.appendChild(row);
+      }
+    }
+
+    // ──── Feature extraction functions ────
+    function aiMean(arr) { let s=0; for(let i=0;i<arr.length;i++) s+=arr[i]; return s/arr.length; }
+    function aiVariance(arr,mu) { if(mu===undefined) mu=aiMean(arr); let s=0; for(let i=0;i<arr.length;i++) s+=(arr[i]-mu)**2; return s/arr.length; }
+    function aiStd(arr,mu) { return Math.sqrt(aiVariance(arr,mu)); }
+
+    function aiSkewness(arr) {
+      const mu=aiMean(arr), sd=aiStd(arr,mu);
+      if(sd===0) return 0;
+      let s=0; for(let i=0;i<arr.length;i++) s+=((arr[i]-mu)/sd)**3;
+      return s/arr.length;
+    }
+    function aiKurtosis(arr) {
+      const mu=aiMean(arr), sd=aiStd(arr,mu);
+      if(sd===0) return 0;
+      let s=0; for(let i=0;i<arr.length;i++) s+=((arr[i]-mu)/sd)**4;
+      return (s/arr.length)-3;
+    }
+    function aiZeroCrossing(arr) {
+      let c=0; const mu=aiMean(arr);
+      for(let i=1;i<arr.length;i++) if((arr[i]-mu)*(arr[i-1]-mu)<0) c++;
+      return c/(arr.length-1);
+    }
+    function aiLineLength(arr) {
+      let ll=0; for(let i=1;i<arr.length;i++) ll+=Math.abs(arr[i]-arr[i-1]);
+      return ll/(arr.length-1);
+    }
+    function aiPeakToPeak(arr) {
+      let mn=Infinity,mx=-Infinity;
+      for(let i=0;i<arr.length;i++){if(arr[i]<mn)mn=arr[i];if(arr[i]>mx)mx=arr[i];}
+      return mx-mn;
+    }
+    function aiHjorthActivity(arr) { return aiVariance(arr); }
+    function aiHjorthMobility(arr) {
+      const d1=new Array(arr.length-1); for(let i=0;i<d1.length;i++) d1[i]=arr[i+1]-arr[i];
+      const vx=aiVariance(arr),vd=aiVariance(d1);
+      return vx>0?Math.sqrt(vd/vx):0;
+    }
+    function aiHjorthComplexity(arr) {
+      const d1=new Array(arr.length-1); for(let i=0;i<d1.length;i++) d1[i]=arr[i+1]-arr[i];
+      const mX=aiHjorthMobility(arr),mD=aiHjorthMobility(d1);
+      return mX>0?mD/mX:0;
+    }
+
+    function aiFFT(signal,sr) {
+      let N=1; while(N<signal.length) N<<=1;
+      const re=new Float32Array(N),im=new Float32Array(N);
+      for(let i=0;i<signal.length;i++) re[i]=signal[i]*(0.5-0.5*Math.cos(2*Math.PI*i/(signal.length-1)));
+      // bit-reversal
+      for(let i=1,j=0;i<N;i++){let bit=N>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]];}}
+      for(let len=2;len<=N;len<<=1){const ang=-2*Math.PI/len;const wr=Math.cos(ang),wi=Math.sin(ang);
+        for(let i=0;i<N;i+=len){let wRe=1,wIm=0;for(let j=0;j<len/2;j++){const uR=re[i+j],uI=im[i+j];
+          const vR=re[i+j+len/2]*wRe-im[i+j+len/2]*wIm,vI=re[i+j+len/2]*wIm+im[i+j+len/2]*wRe;
+          re[i+j]=uR+vR;im[i+j]=uI+vI;re[i+j+len/2]=uR-vR;im[i+j+len/2]=uI-vI;
+          const nw=wRe*wr-wIm*wi;wIm=wRe*wi+wIm*wr;wRe=nw;}}}
+      const df=sr/N,ny=N/2,pw=new Float32Array(ny+1),fr=new Float32Array(ny+1);
+      for(let k=0;k<=ny;k++){pw[k]=re[k]*re[k]+im[k]*im[k];fr[k]=k*df;}
+      return{power:pw,freqs:fr};
+    }
+
+    function aiBandPower(pw,fr,lo,hi){let s=0;for(let k=0;k<fr.length;k++)if(fr[k]>=lo&&fr[k]<hi)s+=pw[k];return s;}
+    function aiSpectralEntropy(pw,fr,lo,hi){
+      let total=0;const inB=[];for(let k=0;k<fr.length;k++)if(fr[k]>=lo&&fr[k]<hi){inB.push(pw[k]);total+=pw[k];}
+      if(total===0||inB.length===0)return 0;
+      let e=0;for(const p of inB){const pn=p/total;if(pn>0)e-=pn*Math.log2(pn);}
+      return e/Math.log2(inB.length);
+    }
+    function aiSEF(pw,fr,pct=0.95){
+      let total=0;for(let k=0;k<pw.length;k++)total+=pw[k];
+      let cum=0;for(let k=0;k<pw.length;k++){cum+=pw[k];if(cum/total>=pct)return fr[k];}
+      return fr[fr.length-1];
+    }
+
+    function extractAIFeatures(window) {
+      const{power,freqs}=aiFFT(window,SR);
+      const delta=aiBandPower(power,freqs,0.5,4),theta=aiBandPower(power,freqs,4,8);
+      const alpha=aiBandPower(power,freqs,8,13),beta=aiBandPower(power,freqs,13,30);
+      const gamma=aiBandPower(power,freqs,30,45),tp=delta+theta+alpha+beta+gamma;
+      const sd=(a,b)=>b>0?a/b:0;
+      return {
+        mean:aiMean(window), std:aiStd(window), skewness:aiSkewness(window), kurtosis:aiKurtosis(window),
+        zeroCrossingRate:aiZeroCrossing(window), lineLength:aiLineLength(window), peakToPeak:aiPeakToPeak(window),
+        hjorthActivity:aiHjorthActivity(window), hjorthMobility:aiHjorthMobility(window), hjorthComplexity:aiHjorthComplexity(window),
+        deltaPct:sd(delta,tp), thetaPct:sd(theta,tp), alphaPct:sd(alpha,tp), betaPct:sd(beta,tp), gammaPct:sd(gamma,tp),
+        deltaOverBeta:sd(delta,beta), thetaOverAlpha:sd(theta,alpha),
+        spectralEntropy:aiSpectralEntropy(power,freqs,0.5,45), spectralEdgeFreq:aiSEF(power,freqs,0.95),
+        totalPower:tp
+      };
+    }
+
+    // ──── Predict risk ────
+    function predictRisk(features) {
+      if (!aiModel) return { risk: 0, contributions: {} };
+      let score = 0;
+      const contributions = {};
+
+      for (const fname of aiModel.featureNames) {
+        const w = aiModel.featureWeights[fname] || 0;
+        if (w === 0) continue;
+        const baseline = aiModel.featureBaseline[fname];
+        const dir = aiModel.featureDirection[fname];
+        const val = features[fname];
+        if (!isFinite(val)) continue;
+
+        const zNormal = baseline.std > 0 ? (val - baseline.mean) / baseline.std : 0;
+        const directedZ = zNormal * dir;
+        const contribution = directedZ * w;
+        score += contribution;
+        contributions[fname] = Math.max(0, contribution);
+      }
+
+      const { scale, offset } = aiModel.sigmoidParams;
+      const risk = 100 / (1 + Math.exp(-scale * (score - offset)));
+      return { risk: Math.max(0, Math.min(100, risk)), contributions };
+    }
+
+    // ──── Risk level helpers ────
+    function getRiskLevel(pct) {
+      if (!aiModel) return { label: '—', color: 'var(--muted2)' };
+      let level = aiModel.riskLevels[0];
+      for (const l of aiModel.riskLevels) {
+        if (pct >= l.threshold) level = l;
+      }
+      return level;
+    }
+
+    function riskColor(pct) {
+      if (pct < 20) return '#37d7b5';
+      if (pct < 40) return '#b8d06e';
+      if (pct < 60) return '#f5a623';
+      if (pct < 80) return '#ff6b6b';
+      return '#e74c3c';
+    }
+
+    // ──── Update gauge SVG ────
+    function updateGauge(pct) {
+      const arc = document.getElementById('gauge-arc');
+      const pctEl = document.getElementById('gauge-pct');
+      const labelEl = document.getElementById('risk-label');
+
+      // Arc length calculation
+      // The arc path: M 20 95 A 65 65 0 0 1 150 95 → semicircle
+      const totalLen = Math.PI * 65; // ~204
+      const fillLen = totalLen * (pct / 100);
+      const dashOffset = totalLen - fillLen;
+
+      const color = riskColor(pct);
+      arc.style.stroke = color;
+      arc.style.strokeDasharray = totalLen;
+      arc.style.strokeDashoffset = dashOffset;
+      arc.style.filter = `drop-shadow(0 0 8px ${color})`;
+
+      pctEl.textContent = Math.round(pct);
+
+      const level = getRiskLevel(pct);
+      labelEl.textContent = level.label;
+      labelEl.style.color = level.color;
+      labelEl.style.borderColor = level.color + '66';
+      labelEl.style.background = level.color + '18';
+    }
+
+    // ──── Update trend chart ────
+    function drawTrendChart() {
+      const cv = document.getElementById('trendCanvas');
+      const w = cv.parentElement.clientWidth;
+      const h = cv.parentElement.clientHeight || 90;
+      if (w > 0) cv.width = w;
+      cv.height = h;
+      const cx = cv.getContext('2d');
+
+      // Background
+      cx.fillStyle = '#eef1f6';
+      cx.fillRect(0, 0, w, h);
+
+      if (riskHistory.length < 2) return;
+
+      // Threshold zones
+      const zones = [
+        { y: 0, h: h * 0.2, color: 'rgba(239,68,68,.06)' },
+        { y: h * 0.2, h: h * 0.2, color: 'rgba(239,68,68,.03)' },
+        { y: h * 0.4, h: h * 0.2, color: 'rgba(245,158,11,.03)' },
+      ];
+      for (const z of zones) {
+        cx.fillStyle = z.color;
+        cx.fillRect(0, z.y, w, z.h);
+      }
+
+      // Grid lines
+      cx.strokeStyle = 'rgba(0,0,0,.06)';
+      cx.lineWidth = 1;
+      for (let p = 20; p <= 80; p += 20) {
+        const y = h - (p / 100) * h;
+        cx.beginPath(); cx.moveTo(0, y); cx.lineTo(w, y); cx.stroke();
+      }
+
+      // Risk line with gradient
+      const grad = cx.createLinearGradient(0, h, 0, 0);
+      grad.addColorStop(0, '#37d7b5');
+      grad.addColorStop(0.3, '#b8d06e');
+      grad.addColorStop(0.5, '#f5a623');
+      grad.addColorStop(0.7, '#ff6b6b');
+      grad.addColorStop(1, '#e74c3c');
+
+      // Fill area
+      cx.beginPath();
+      cx.moveTo(0, h);
+      for (let i = 0; i < riskHistory.length; i++) {
+        const x = (i / (TREND_HISTORY - 1)) * w;
+        const y = h - (riskHistory[i] / 100) * h;
+        cx.lineTo(x, y);
+      }
+      cx.lineTo((riskHistory.length - 1) / (TREND_HISTORY - 1) * w, h);
+      cx.closePath();
+      cx.fillStyle = 'rgba(16,185,129,.06)';
+      cx.fill();
+
+      // Stroke line
+      cx.beginPath();
+      for (let i = 0; i < riskHistory.length; i++) {
+        const x = (i / (TREND_HISTORY - 1)) * w;
+        const y = h - (riskHistory[i] / 100) * h;
+        if (i === 0) cx.moveTo(x, y); else cx.lineTo(x, y);
+      }
+      cx.strokeStyle = grad;
+      cx.lineWidth = 2;
+      cx.lineJoin = 'round';
+      cx.stroke();
+
+      // Current value dot
+      const lastX = ((riskHistory.length - 1) / (TREND_HISTORY - 1)) * w;
+      const lastY = h - (riskHistory[riskHistory.length - 1] / 100) * h;
+      const lastColor = riskColor(riskHistory[riskHistory.length - 1]);
+      cx.beginPath();
+      cx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+      cx.fillStyle = lastColor;
+      cx.fill();
+      cx.beginPath();
+      cx.arc(lastX, lastY, 7, 0, Math.PI * 2);
+      cx.strokeStyle = lastColor + '44';
+      cx.lineWidth = 2;
+      cx.stroke();
+    }
+
+    // ──── Update feature bars ────
+    function updateFeatureBars(contributions) {
+      if (!aiModel) return;
+      const topFeats = aiModel.featureNames.slice(0, 8);
+      const maxC = Math.max(...Object.values(contributions), 0.01);
+
+      for (const fname of topFeats) {
+        const val = contributions[fname] || 0;
+        const pct = Math.min(100, (val / maxC) * 100);
+        const fill = document.getElementById('fb-' + fname);
+        const vlbl = document.getElementById('fv-' + fname);
+        if (fill) {
+          fill.style.width = pct + '%';
+          fill.style.background = riskColor(pct);
+        }
+        if (vlbl) vlbl.textContent = (val * 100).toFixed(0);
+      }
+    }
+
+    // ──── Alert system ────
+    function updateAlerts(pct) {
+      const banner = document.getElementById('alert-banner');
+      const text = document.getElementById('alert-text');
+      const level = getRiskLevel(pct);
+
+      if (pct >= 60) {
+        banner.className = 'active danger';
+        banner.id = 'alert-banner';
+        text.textContent = `⚡ ${level.label} — Risk at ${Math.round(pct)}% — Immediate attention recommended`;
+        if (lastAlertLevel !== 'danger') {
+          addLogEntry(`ALERT: Risk elevated to ${Math.round(pct)}% — ${level.label}`, '#e74c3c');
+          lastAlertLevel = 'danger';
+        }
+      } else if (pct >= 40) {
+        banner.className = 'active warn';
+        banner.id = 'alert-banner';
+        text.textContent = `⚠ ${level.label} — Risk at ${Math.round(pct)}% — Monitor closely`;
+        if (lastAlertLevel !== 'warn') {
+          addLogEntry(`WARNING: Risk at ${Math.round(pct)}% — ${level.label}`, '#f5a623');
+          lastAlertLevel = 'warn';
+        }
+      } else {
+        banner.className = '';
+        banner.id = 'alert-banner';
+        lastAlertLevel = '';
+      }
+    }
+
+    function addLogEntry(msg, color) {
+      const now = new Date();
+      const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+      const container = document.getElementById('log-entries');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `<span class="log-time">${ts}</span><span style="color:${color||'var(--muted)'}">${msg}</span>`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+      // Keep max 20 entries
+      while (container.children.length > 20) container.removeChild(container.firstChild);
+    }
+
+    // ──── Main AI loop ────
+    setInterval(() => {
+      if (!aiModel || isStopped || packetCount < 20) return;
+
+      // Get last AI_WINDOW samples from channel 0 (FP1)
+      const window = new Float32Array(AI_WINDOW);
+      for (let i = 0; i < AI_WINDOW; i++) {
+        const bi = (writeIdx - AI_WINDOW + i + BUF_SIZE * 4) % BUF_SIZE;
+        window[i] = bufs[0][bi];
+      }
+
+      // Extract features & predict
+      const features = extractAIFeatures(window);
+      const { risk, contributions } = predictRisk(features);
+
+      // Smooth the risk with EMA
+      const smoothedRisk = riskHistory.length > 0
+        ? 0.3 * risk + 0.7 * riskHistory[riskHistory.length - 1]
+        : risk;
+
+      // Update history
+      riskHistory.push(smoothedRisk);
+      if (riskHistory.length > TREND_HISTORY) riskHistory.shift();
+
+      // Update UI
+      updateGauge(smoothedRisk);
+      drawTrendChart();
+      updateFeatureBars(contributions);
+      updateAlerts(smoothedRisk);
+
+    }, AI_INTERVAL);
+    document.getElementById('btnAnalyze').addEventListener('click', () => {
+      if (!csvRows.length) {
+        alert("No data to analyze. Stream some data first.");
+        return;
+      }
+      const data = CSV_HEADER + '\n' + csvRows.join('\n');
+      try {
+        localStorage.setItem('neuro_analysis_csv', data);
+        window.open('/analysis', '_blank');
+      } catch (err) {
+        alert("Session too large to quickly transfer. Please Export CSV, go to /analysis, and upload it manually.");
+      }
+    });
+
+  </script>
+</body>
+</html>

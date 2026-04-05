@@ -1,0 +1,222 @@
+{
+  "version": "1.0.0",
+  "name": "NeuroWatch AI Risk Predictor",
+  "description": "EEG-based neurological risk assessment model trained on the Bonn University EEG Dataset",
+  "dataset": "Bonn University EEG Dataset (Andrzejak et al., 2001)",
+  "trainingDate": "2026-04-03T06:12:43.442Z",
+  "config": {
+    "sampleRate": 250,
+    "windowSize": 512,
+    "featureCount": 19
+  },
+  "featureNames": [
+    "hjorthComplexity",
+    "lineLength",
+    "hjorthMobility",
+    "spectralEdgeFreq",
+    "zeroCrossingRate",
+    "deltaPct",
+    "std",
+    "peakToPeak",
+    "hjorthActivity",
+    "alphaPct",
+    "betaPct",
+    "totalPower",
+    "deltaOverBeta",
+    "spectralEntropy",
+    "thetaOverAlpha",
+    "thetaPct",
+    "mean",
+    "gammaPct",
+    "skewness"
+  ],
+  "featureWeights": {
+    "hjorthComplexity": 0.1121,
+    "lineLength": 0.0967,
+    "hjorthMobility": 0.0797,
+    "spectralEdgeFreq": 0.0773,
+    "zeroCrossingRate": 0.0735,
+    "deltaPct": 0.0649,
+    "std": 0.0636,
+    "peakToPeak": 0.06,
+    "hjorthActivity": 0.057,
+    "alphaPct": 0.0549,
+    "betaPct": 0.0455,
+    "totalPower": 0.0433,
+    "deltaOverBeta": 0.0408,
+    "spectralEntropy": 0.0359,
+    "thetaOverAlpha": 0.0285,
+    "thetaPct": 0.0214,
+    "mean": 0.0213,
+    "gammaPct": 0.0144,
+    "skewness": 0.0092
+  },
+  "featureBaseline": {
+    "hjorthComplexity": {
+      "mean": 1.986,
+      "std": 0.4607,
+      "p5": 1.4506,
+      "p95": 2.9018
+    },
+    "lineLength": {
+      "mean": 10.8828,
+      "std": 2.4612,
+      "p5": 6.9313,
+      "p95": 15.0027
+    },
+    "hjorthMobility": {
+      "mean": 0.2822,
+      "std": 0.0478,
+      "p5": 0.2082,
+      "p95": 0.3585
+    },
+    "spectralEdgeFreq": {
+      "mean": 20.786,
+      "std": 4.3227,
+      "p5": 13.1836,
+      "p95": 26.8555
+    },
+    "zeroCrossingRate": {
+      "mean": 0.0911,
+      "std": 0.0167,
+      "p5": 0.0626,
+      "p95": 0.1194
+    },
+    "deltaPct": {
+      "mean": 0.2579,
+      "std": 0.1507,
+      "p5": 0.0562,
+      "p95": 0.5278
+    },
+    "std": {
+      "mean": 48.3004,
+      "std": 8.2241,
+      "p5": 36.8715,
+      "p95": 66.1114
+    },
+    "peakToPeak": {
+      "mean": 266.894,
+      "std": 47.5221,
+      "p5": 191.62,
+      "p95": 363.16
+    },
+    "hjorthActivity": {
+      "mean": 2400.5661,
+      "std": 858.152,
+      "p5": 1359.5099,
+      "p95": 4370.7118
+    },
+    "alphaPct": {
+      "mean": 0.38,
+      "std": 0.1953,
+      "p5": 0.0967,
+      "p95": 0.7372
+    },
+    "betaPct": {
+      "mean": 0.1994,
+      "std": 0.107,
+      "p5": 0.0661,
+      "p95": 0.3979
+    },
+    "totalPower": {
+      "mean": 106116130.8706,
+      "std": 49499081.3606,
+      "p5": 49630547.9598,
+      "p95": 189035240.6344
+    },
+    "deltaOverBeta": {
+      "mean": 1.9617,
+      "std": 2.0398,
+      "p5": 0.2005,
+      "p95": 6.9588
+    },
+    "spectralEntropy": {
+      "mean": 0.7033,
+      "std": 0.0637,
+      "p5": 0.5832,
+      "p95": 0.7883
+    },
+    "thetaOverAlpha": {
+      "mean": 0.7142,
+      "std": 0.9882,
+      "p5": 0.0554,
+      "p95": 2.3229
+    },
+    "thetaPct": {
+      "mean": 0.155,
+      "std": 0.0864,
+      "p5": 0.0403,
+      "p95": 0.3291
+    },
+    "mean": {
+      "mean": 3.86,
+      "std": 9.6308,
+      "p5": -11.0234,
+      "p95": 20.7563
+    },
+    "gammaPct": {
+      "mean": 0.0078,
+      "std": 0.0084,
+      "p5": 0.0012,
+      "p95": 0.0276
+    },
+    "skewness": {
+      "mean": -0.0292,
+      "std": 0.3459,
+      "p5": -0.7475,
+      "p95": 0.4044
+    }
+  },
+  "featureDirection": {
+    "hjorthComplexity": 1,
+    "lineLength": -1,
+    "hjorthMobility": -1,
+    "spectralEdgeFreq": -1,
+    "zeroCrossingRate": -1,
+    "deltaPct": 1,
+    "std": -1,
+    "peakToPeak": -1,
+    "hjorthActivity": -1,
+    "alphaPct": -1,
+    "betaPct": -1,
+    "totalPower": -1,
+    "deltaOverBeta": 1,
+    "spectralEntropy": -1,
+    "thetaOverAlpha": 1,
+    "thetaPct": 1,
+    "mean": -1,
+    "gammaPct": -1,
+    "skewness": 1
+  },
+  "riskLevels": [
+    {
+      "threshold": 0,
+      "label": "NORMAL",
+      "color": "#37d7b5"
+    },
+    {
+      "threshold": 20,
+      "label": "LOW RISK",
+      "color": "#b8d06e"
+    },
+    {
+      "threshold": 40,
+      "label": "MODERATE",
+      "color": "#f5a623"
+    },
+    {
+      "threshold": 60,
+      "label": "HIGH",
+      "color": "#ff6b6b"
+    },
+    {
+      "threshold": 80,
+      "label": "CRITICAL",
+      "color": "#e74c3c"
+    }
+  ],
+  "sigmoidParams": {
+    "scale": 1.5,
+    "offset": 0.5
+  }
+}
